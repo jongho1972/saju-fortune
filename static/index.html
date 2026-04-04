@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사주팔자 조회</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>사주팔자 조회</h1>
+        <p class="subtitle">사주명리학 기반 AI 운세 분석</p>
+    </header>
+
+    <div class="container">
+        <!-- 입력 폼 -->
+        <section id="input-section" class="card">
+            <h2>생년월일시 입력</h2>
+            <form id="saju-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">이름</label>
+                        <input type="text" id="name" placeholder="이름을 입력하세요" required>
+                    </div>
+                    <div class="form-group">
+                        <label>성별</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="gender" value="male" checked>
+                                <span>남</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="gender" value="female">
+                                <span>여</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>달력</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="calendar_type" value="solar" checked>
+                                <span>양력</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="calendar_type" value="lunar">
+                                <span>음력</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="intercalation-group" style="display:none;">
+                        <label>
+                            <input type="checkbox" id="is_intercalation">
+                            윤달
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row birth-row">
+                    <div class="form-group">
+                        <label for="year">년</label>
+                        <select id="year" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="month">월</label>
+                        <select id="month" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="day">일</label>
+                        <select id="day" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="hour">시</label>
+                        <select id="hour">
+                            <option value="">모름</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="birth_place">출생지 (선택)</label>
+                        <input type="text" id="birth_place" placeholder="예: 서울, 부산">
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn">
+                    <span class="btn-text">사주 분석하기</span>
+                    <span class="btn-loading" style="display:none;">
+                        <span class="spinner"></span> 분석 중...
+                    </span>
+                </button>
+            </form>
+        </section>
+
+        <!-- 로딩 -->
+        <section id="loading-section" class="card" style="display:none;">
+            <div class="loading-container">
+                <div class="taeguk-spinner">
+                    <div class="taeguk-inner"></div>
+                </div>
+                <p>당신의 운명을 확인하고 있습니다...</p>
+            </div>
+        </section>
+
+        <!-- 결과 -->
+        <section id="result-section" style="display:none;">
+            <!-- 사주팔자 표 -->
+            <div class="card" id="saju-table-card">
+                <h2>사주팔자</h2>
+                <div id="saju-info"></div>
+                <div id="saju-table"></div>
+                <div id="ohaeng-chart"></div>
+            </div>
+
+            <!-- AI 해석 -->
+            <div class="card" id="interpretation-card">
+                <h2>AI 사주 해석</h2>
+                <div id="interpretation"></div>
+            </div>
+        </section>
+
+        <footer>
+            <p>본 서비스는 오락 및 참고 목적으로 제공됩니다.</p>
+            <p>AI 기반 사주 해석은 전문 역학인의 상담을 대체하지 않습니다.</p>
+        </footer>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>

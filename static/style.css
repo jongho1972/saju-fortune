@@ -1,0 +1,542 @@
+/* ── 기본 설정 ── 복권번호생성기와 동일한 톤앤매너 ── */
+:root {
+    --accent: #007aff;
+    --accent-dark: #0062cc;
+    --bg: #f5f5f7;
+    --card-bg: #fff;
+    --text: #1c1c1e;
+    --text-muted: #8e8e93;
+    --border: rgba(0, 0, 0, 0.08);
+    --radius: 12px;
+    --shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.06);
+    --saju-accent: #fbc400;
+    --oh-wood: #27ae60;
+    --oh-fire: #e74c3c;
+    --oh-earth: #f39c12;
+    --oh-metal: #95a5a6;
+    --oh-water: #2980b9;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    flex: 1;
+    max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 16px 40px;
+}
+
+/* ── 헤더 ────────────────────────────────────── */
+header {
+    background: #fff;
+    border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+    text-align: center;
+    padding: 28px 20px 22px;
+    margin-bottom: 24px;
+}
+
+header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.logo {
+    display: none;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+/* ── 카드 ────────────────────────────────────── */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.card h2 {
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 14px 20px;
+    margin: 0;
+    border-bottom: 1px solid var(--border);
+    border-left: 4px solid var(--saju-accent);
+}
+
+#input-section {
+    overflow: visible;
+}
+
+#input-section h2 {
+    margin-bottom: 0;
+}
+
+#input-section form {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ── 폼 ──────────────────────────────────────── */
+.form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group.full-width {
+    flex: 1 1 100%;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.form-group input[type="text"],
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.radio-group {
+    display: flex;
+    gap: 8px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 8px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+
+.radio-label:has(input:checked) {
+    border-color: var(--accent);
+    background: rgba(0, 122, 255, 0.06);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.radio-label input[type="radio"] {
+    display: none;
+}
+
+.birth-row .form-group {
+    min-width: 0;
+}
+
+#intercalation-group {
+    align-self: flex-end;
+}
+
+#intercalation-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+/* ── 버튼 ────────────────────────────────────── */
+#submit-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    font-family: inherit;
+}
+
+#submit-btn:hover:not(:disabled) {
+    background: var(--accent-dark);
+}
+
+#submit-btn:active {
+    transform: scale(0.98);
+}
+
+#submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+/* ── 로딩 ────────────────────────────────────── */
+.loading-container {
+    text-align: center;
+    padding: 40px 0;
+}
+
+.taeguk-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 0.8s linear infinite;
+}
+
+.taeguk-inner {
+    display: none;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+    font-size: 0.95rem;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.loading-sub {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin-top: 6px;
+    font-weight: 400;
+}
+
+/* ── 사주 표 ─────────────────────────────────── */
+#saju-table-card h2 {
+    border-left: 4px solid var(--saju-accent);
+}
+
+#saju-info {
+    text-align: center;
+    padding: 16px 20px 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+#saju-info strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
+#saju-table {
+    padding: 0 20px;
+}
+
+#ohaeng-chart {
+    padding: 0 20px 20px;
+}
+
+.saju-grid {
+    display: grid;
+    grid-template-columns: auto repeat(4, 1fr);
+    gap: 0;
+    margin: 16px 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.saju-grid.no-hour {
+    grid-template-columns: auto repeat(3, 1fr);
+}
+
+.saju-cell {
+    padding: 12px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+
+.saju-cell:last-child {
+    border-right: none;
+}
+
+.saju-cell.header {
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.saju-cell.row-label {
+    background: var(--bg);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+}
+
+.saju-cell .hanja {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+    color: var(--text);
+}
+
+.saju-cell .hangul {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.saju-cell .ohaeng-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 오행 색상 */
+.oh-wood { background: var(--oh-wood); }
+.oh-fire { background: var(--oh-fire); }
+.oh-earth { background: var(--oh-earth); }
+.oh-metal { background: var(--oh-metal); color: #fff; }
+.oh-water { background: var(--oh-water); }
+
+/* ── 오행 차트 ───────────────────────────────── */
+.ohaeng-chart {
+    margin-top: 8px;
+}
+
+.ohaeng-chart h3 {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ohaeng-bar-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.ohaeng-bar-label {
+    min-width: 50px;
+    font-size: 0.82rem;
+    text-align: right;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.ohaeng-bar-track {
+    flex: 1;
+    height: 20px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.ohaeng-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 6px;
+    font-size: 0.68rem;
+    color: #fff;
+    font-weight: 700;
+}
+
+.ohaeng-bar-count {
+    min-width: 24px;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* ── AI 해석 ─────────────────────────────────── */
+#interpretation-card h2 {
+    border-left: 4px solid #636366;
+}
+
+#interpretation {
+    line-height: 1.85;
+    font-size: 0.93rem;
+    padding: 20px;
+    color: var(--text);
+}
+
+#interpretation h2 {
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    padding: 0 0 8px 0;
+    border-bottom: 1px solid var(--border);
+    border-left: none;
+}
+
+#interpretation h2:first-child {
+    margin-top: 0;
+}
+
+#interpretation p {
+    margin-bottom: 12px;
+    color: var(--text);
+}
+
+#interpretation ul, #interpretation ol {
+    margin-bottom: 12px;
+    padding-left: 20px;
+}
+
+#interpretation li {
+    margin-bottom: 4px;
+}
+
+#interpretation strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* 커서 깜빡임 효과 */
+.typing-cursor::after {
+    content: '|';
+    animation: blink 0.8s infinite;
+    color: var(--accent);
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* ── 푸터 ────────────────────────────────────── */
+footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+footer p {
+    margin-bottom: 4px;
+}
+
+/* ── 반응형 ──────────────────────────────────── */
+@media (max-width: 600px) {
+    header {
+        padding: 20px 16px 16px;
+    }
+
+    header h1 {
+        font-size: 1.3rem;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .birth-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .birth-row .form-group {
+        flex: 1 1 calc(50% - 8px);
+        min-width: calc(50% - 8px);
+    }
+
+    .saju-cell .hanja {
+        font-size: 1.2rem;
+    }
+
+    #input-section form {
+        padding: 16px;
+    }
+
+    #saju-table, #ohaeng-chart, #interpretation {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
