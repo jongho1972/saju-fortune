@@ -20,7 +20,7 @@ function initSelects() {
         opt.textContent = y + '년';
         yearSel.appendChild(opt);
     }
-    yearSel.value = 1990;
+    yearSel.value = 1972;
 
     // 월
     for (let m = 1; m <= 12; m++) {
