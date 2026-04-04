@@ -316,7 +316,7 @@ header h1 {
 }
 
 .saju-cell {
-    padding: 12px 8px;
+    padding: 8px 6px;
     text-align: center;
     border-bottom: 1px solid var(--border);
     border-right: 1px solid var(--border);
@@ -345,10 +345,10 @@ header h1 {
 }
 
 .saju-cell .hanja {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     font-weight: 700;
     display: block;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
     color: var(--text);
 }
 
@@ -528,7 +528,7 @@ footer p {
     }
 
     .saju-cell .hanja {
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
 
     #input-section form {
