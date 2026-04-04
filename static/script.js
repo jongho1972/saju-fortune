@@ -89,9 +89,8 @@ async function handleSubmit(e) {
     // UI 상태 전환
     const submitBtn = document.getElementById('submit-btn');
     submitBtn.disabled = true;
-    submitBtn.querySelector('.btn-text').style.display = 'none';
-    submitBtn.querySelector('.btn-loading').style.display = 'inline';
 
+    document.getElementById('input-section').style.display = 'none';
     document.getElementById('loading-section').style.display = 'block';
     document.getElementById('result-section').style.display = 'none';
 
@@ -159,11 +158,10 @@ async function handleSubmit(e) {
 
     } catch (err) {
         document.getElementById('loading-section').style.display = 'none';
+        document.getElementById('input-section').style.display = 'block';
         alert('분석 중 오류가 발생했습니다: ' + err.message);
     } finally {
         submitBtn.disabled = false;
-        submitBtn.querySelector('.btn-text').style.display = 'inline';
-        submitBtn.querySelector('.btn-loading').style.display = 'none';
     }
 }
 
