@@ -209,10 +209,10 @@ def _get_month_index(solar_date: date, year: int) -> int:
 
 # ── 일주 계산 ──────────────────────────────────────────
 
-# 기준일: 1900년 1월 1일 = 경자(庚子)일
+# 기준일: 1900년 1월 1일 = 갑술(甲戌)일
 _BASE_DATE = date(1900, 1, 1)
-_BASE_CHEONGAN = 6  # 경(庚) = 6
-_BASE_JIJI = 0      # 자(子) = 0
+_BASE_CHEONGAN = 0   # 갑(甲) = 0
+_BASE_JIJI = 10      # 술(戌) = 10
 
 
 def calc_day_pillar(solar_date: date) -> tuple[int, int]:
