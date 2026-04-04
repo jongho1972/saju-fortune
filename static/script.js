@@ -105,12 +105,15 @@ async function handleSubmit(e) {
             throw new Error(`서버 오류: ${response.status}`);
         }
 
-        // 백그라운드에서 스트리밍 수신 (화면에는 로딩만 표시)
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let fullText = '';
-        let sajuData = null;
+        const interpEl = document.getElementById('interpretation');
+        interpEl.innerHTML = '';
+
+        // AI 해석 로딩 표시
+        document.getElementById('interpretation-card').querySelector('h2').textContent = 'AI 사주 해석 (분석 중...)';
 
         while (true) {
             const { done, value } = await reader.read();
@@ -128,7 +131,11 @@ async function handleSubmit(e) {
                 try {
                     const data = JSON.parse(jsonStr);
                     if (data.type === 'saju_data') {
-                        sajuData = data.data;
+                        // 사주 표를 즉시 표시
+                        document.getElementById('loading-section').style.display = 'none';
+                        document.getElementById('result-section').style.display = 'block';
+                        renderSajuTable(data.data);
+                        document.getElementById('saju-table-card').scrollIntoView({ behavior: 'smooth' });
                     } else if (data.type === 'text') {
                         fullText += data.content;
                     }
@@ -138,23 +145,13 @@ async function handleSubmit(e) {
             }
         }
 
-        // 스트리밍 완료 → 로딩 숨기고 결과 한 번에 표시
-        document.getElementById('loading-section').style.display = 'none';
-        document.getElementById('result-section').style.display = 'block';
-
-        if (sajuData) {
-            renderSajuTable(sajuData);
-        }
-
-        const interpEl = document.getElementById('interpretation');
+        // AI 해석 완료 → 한 번에 표시
+        document.getElementById('interpretation-card').querySelector('h2').textContent = 'AI 사주 해석';
         if (fullText) {
             interpEl.innerHTML = marked.parse(fullText);
         } else {
             interpEl.innerHTML = '<p>해석 결과를 불러오지 못했습니다.</p>';
         }
-
-        // 결과 영역으로 스크롤
-        document.getElementById('saju-table-card').scrollIntoView({ behavior: 'smooth' });
 
     } catch (err) {
         document.getElementById('loading-section').style.display = 'none';
