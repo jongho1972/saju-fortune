@@ -114,7 +114,7 @@ async function handleSubmit(e) {
 
         // AI 해석 로딩 표시 (진행 바)
         const interpCard = document.getElementById('interpretation-card');
-        interpCard.querySelector('h2').textContent = 'AI 사주 해석 (분석 중...)';
+        interpCard.querySelector('h2').textContent = 'AI 사주 해석';
         interpEl.innerHTML = `
             <div class="ai-progress">
                 <div class="ai-progress-bar"><div class="ai-progress-fill" id="ai-progress-fill"></div></div>
