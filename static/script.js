@@ -78,7 +78,7 @@ async function handleSubmit(e) {
         gender: document.querySelector('input[name="gender"]:checked').value,
         calendar_type: document.querySelector('input[name="calendar_type"]:checked').value,
         is_intercalation: document.getElementById('is_intercalation').checked,
-        birth_place: document.getElementById('birth_place').value.trim(),
+        birth_place: "",
     };
 
     if (!formData.name) {
