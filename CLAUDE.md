@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-사주팔자(四柱八字) 조회 웹사이트. 생년월일시를 입력하면 사주를 계산하고 Claude API로 전문적인 해석을 생성한다.
+사주팔자(四柱八字) 조회 웹사이트. 생년월일시를 입력하면 사주를 계산하고 Claude API로 쉬운 언어의 해석을 생성한다.
 
-## 기술 스��
+## 기술 스택
 
 - **백엔드**: FastAPI (Python)
 - **프론트엔드**: 정적 HTML/CSS/JS (static/ 디렉토리)
-- **AI 해석**: Anthropic Claude API (SSE 스트리밍)
+- **AI 해석**: Anthropic Claude API (SSE 스트리밍, 완료 후 한 번에 표시)
 - **사주 계산**: 자체 구현 + korean-lunar-calendar (음양력 변환)
-- **배포**: Render
+- **배포**: Render (`https://saju-fortune.onrender.com`)
 
 ## 개발 명령어
 
@@ -21,15 +21,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pip install -r requirements.txt
 
 # 로컬 서버 실행 (http://localhost:8000)
-ANTHROPIC_API_KEY=your-key uvicorn main:app --reload
+# .env 파일에 ANTHROPIC_API_KEY 설정 필요
+uvicorn main:app --reload
 ```
 
 ## 아키텍처
 
 ### 핵심 모듈
 
-- `main.py` — FastAPI 앱. `POST /api/saju` 엔드포인트에서 사주 계산 → Claude API 스트리밍 → SSE 응답. 정적 파일은 `app.mount("/")` 으로 서빙.
-- `saju_calculator.py` �� 사주팔자 계산 엔진. 년주/월주/일주/��주 계산, 오행 분석, 십신, 대운/세운 산출. `calculate_saju()` 가 진입점.
+- `main.py` — FastAPI 앱. `POST /api/saju` 엔드포인트에서 사주 계산 → Claude API 스트리밍 → SSE 응답. 정적 파일은 `app.mount("/")` 으로 서빙. AI 해석 프롬프트(`SYSTEM_PROMPT`)가 여기에 정의됨.
+- `saju_calculator.py` — 사주팔자 계산 엔진. 년주/월주/일주/시주 계산, 오행 분석, 십신, 대운/세운 산출. `calculate_saju()` 가 진입점.
 - `solar_terms.py` — 1920~2050년 절기(절입일) 데이터 테이블. 월주 결정 시 절기 기준 사용.
 
 ### 사주 계산 핵심 로직
@@ -43,15 +44,35 @@ ANTHROPIC_API_KEY=your-key uvicorn main:app --reload
 
 ```
 프론트엔드 폼 → POST /api/saju → saju_calculator.calculate_saju()
-  → Claude API 스트리밍 → SSE → 프론트엔드 렌더링 (marked.js)
+  → Claude API 스트리밍 → SSE → 프론트엔드 (완료 후 한 번에 렌더링)
 ```
 
 SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크), `done` (완료)
 
+프론트엔드는 스트리밍 중에는 로딩 화면만 표시하고, 완료 시 사주표+AI 해석을 한 번에 표시한다.
+
+### AI 해석 항목 (main.py SYSTEM_PROMPT)
+
+1. 사주 총론
+2. 타고난 성격과 기질
+3. 재물운과 직업운
+4. 연애운과 결혼운
+5. 건강운
+6. 궁합이 좋은 띠와 사주
+7. 올해의 월별 운세 (남은 기간 월별)
+8. 행운의 숫자·색상·방위
+9. 대운 흐름과 종합 조언
+
+해석은 전문 용어 없이 쉬운 일상 언어로 작성된다.
+
+### 디자인
+
+복권번호생성기(`lottery-number-generator.onrender.com`)와 동일한 톤앤매너. 밝은 배경(`#f5f5f7`), 흰색 카드, 파란 액센트 버튼(`#007aff`), 노란 왼쪽 보더 카드 헤더.
+
 ## 환경변수
 
-- `ANTHROPIC_API_KEY` — Claude API 키 (Render 대시보드에서 설정)
+- `ANTHROPIC_API_KEY` — Claude API 키 (로컬: `.env` 파일, 배포: Render 대시보드)
 
 ## 배포
 
-Render 배포. `render.yaml` 참조. 무료 플랜은 비활성 시 콜드스타트 ~50초 소요.
+Render 배포. `render.yaml` 참조. GitHub `jongho1972/saju-fortune` 저장소와 연동되어 push 시 자동 배포.
