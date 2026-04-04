@@ -112,8 +112,24 @@ async function handleSubmit(e) {
         const interpEl = document.getElementById('interpretation');
         interpEl.innerHTML = '';
 
-        // AI 해석 로딩 표시
-        document.getElementById('interpretation-card').querySelector('h2').textContent = 'AI 사주 해석 (분석 중...)';
+        // AI 해석 로딩 표시 (진행 바)
+        const interpCard = document.getElementById('interpretation-card');
+        interpCard.querySelector('h2').textContent = 'AI 사주 해석 (분석 중...)';
+        interpEl.innerHTML = `
+            <div class="ai-progress">
+                <div class="ai-progress-bar"><div class="ai-progress-fill" id="ai-progress-fill"></div></div>
+                <p class="ai-progress-text" id="ai-progress-text">당신의 운명을 확인하고 있습니다...</p>
+            </div>`;
+        const EXPECTED_LENGTH = 3000;
+        const progressFill = document.getElementById('ai-progress-fill');
+        const progressText = document.getElementById('ai-progress-text');
+        const progressMessages = [
+            '사주팔자를 읽고 있습니다...',
+            '오행의 균형을 살펴보고 있습니다...',
+            '운세를 분석하고 있습니다...',
+            '월별 운세를 작성하고 있습니다...',
+            '거의 다 되었습니다...',
+        ];
 
         while (true) {
             const { done, value } = await reader.read();
@@ -138,6 +154,13 @@ async function handleSubmit(e) {
                         document.getElementById('saju-table-card').scrollIntoView({ behavior: 'smooth' });
                     } else if (data.type === 'text') {
                         fullText += data.content;
+                        // 진행 바 업데이트
+                        if (progressFill) {
+                            const pct = Math.min(95, (fullText.length / EXPECTED_LENGTH) * 100);
+                            progressFill.style.width = pct + '%';
+                            const msgIdx = Math.min(Math.floor(pct / 20), progressMessages.length - 1);
+                            progressText.textContent = progressMessages[msgIdx];
+                        }
                     }
                 } catch (parseErr) {
                     // JSON 파싱 실패 시 무시
