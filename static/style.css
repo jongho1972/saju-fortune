@@ -530,6 +530,12 @@ footer p {
     margin-bottom: 4px;
 }
 
+footer .deploy-date {
+    margin-top: 8px;
+    font-size: 0.7rem;
+    color: #bbb;
+}
+
 /* ── 반응형 ──────────────────────────────────── */
 @media (max-width: 600px) {
     header {
