@@ -233,5 +233,49 @@ async def analyze_saju(request: Request):
     )
 
 
+FOLLOWUP_SYSTEM = """당신은 사주를 아주 쉽게 설명해주는 친절한 선생님입니다.
+사용자의 사주 분석 결과를 바탕으로 추가 질문에 답변해주세요.
+초등학생도 이해할 수 있는 쉬운 말로 답변하세요. 전문 용어는 사용하지 마세요.
+간결하고 핵심적으로 답변하되, 친절한 톤을 유지하세요."""
+
+
+@app.post("/api/followup")
+async def followup_question(request: Request):
+    """추가 질문 (SSE 스트리밍)"""
+    data = await request.json()
+    question = data.get("question", "")
+    saju_context = data.get("saju_context", "")
+    chat_history = data.get("chat_history", [])
+
+    messages = [{"role": "user", "content": f"[사주 분석 맥락]\n{saju_context}"}]
+    messages.append({"role": "assistant", "content": "네, 이 사주에 대해 추가로 궁금한 점이 있으시면 편하게 물어보세요!"})
+
+    for msg in chat_history:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+
+    messages.append({"role": "user", "content": question})
+
+    async def event_stream():
+        async with client.messages.stream(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1000,
+            system=FOLLOWUP_SYSTEM,
+            messages=messages,
+        ) as stream:
+            async for text in stream.text_stream:
+                yield f"data: {json.dumps({'type': 'text', 'content': text}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 # 정적 파일 서빙 (프론트엔드)
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

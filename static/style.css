@@ -461,8 +461,92 @@ header h1 {
 }
 
 /* ── AI 해석 ─────────────────────────────────── */
-#interpretation-card h2 {
+#interpretation-card h2,
+#followup-card h2 {
     border-left: 4px solid #636366;
+}
+
+/* ── 추가 질문 ───────────────────────────────── */
+#followup-chat {
+    padding: 0 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.chat-msg {
+    padding: 12px 14px;
+    margin: 8px 0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+
+.chat-msg strong {
+    color: var(--accent);
+    margin-right: 4px;
+}
+
+.chat-user {
+    background: var(--bg);
+}
+
+.chat-ai {
+    background: #fff;
+    border: 1px solid var(--border);
+}
+
+.chat-ai p {
+    margin: 4px 0;
+}
+
+.chat-loading {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.followup-input-wrap {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px;
+}
+
+.followup-input-wrap input {
+    flex: 1;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.followup-input-wrap input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.followup-input-wrap button {
+    padding: 10px 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.followup-input-wrap button:hover:not(:disabled) {
+    background: var(--accent-dark);
+}
+
+.followup-input-wrap button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 #interpretation {

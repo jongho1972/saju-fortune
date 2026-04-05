@@ -172,6 +172,11 @@ async function handleSubmit(e) {
         document.getElementById('interpretation-card').querySelector('h2').textContent = 'AI 사주 해석';
         if (fullText) {
             interpEl.innerHTML = marked.parse(fullText);
+            // 추가 질문 영역 표시
+            sajuContext = fullText;
+            chatHistory = [];
+            document.getElementById('followup-card').style.display = 'block';
+            document.getElementById('followup-chat').innerHTML = '';
         } else {
             interpEl.innerHTML = '<p>해석 결과를 불러오지 못했습니다.</p>';
         }
@@ -184,6 +189,99 @@ async function handleSubmit(e) {
         submitBtn.disabled = false;
     }
 }
+
+// ── 추가 질문 ───────────────────────────────────────
+
+let sajuContext = '';
+let chatHistory = [];
+
+async function sendFollowup() {
+    const input = document.getElementById('followup-input');
+    const question = input.value.trim();
+    if (!question) return;
+
+    const chatEl = document.getElementById('followup-chat');
+    const btn = document.getElementById('followup-btn');
+
+    // 질문 표시
+    chatEl.innerHTML += `<div class="chat-msg chat-user"><strong>Q.</strong> ${escapeHtml(question)}</div>`;
+    input.value = '';
+    btn.disabled = true;
+    btn.textContent = '답변 중...';
+
+    // 답변 영역
+    const answerDiv = document.createElement('div');
+    answerDiv.className = 'chat-msg chat-ai';
+    answerDiv.innerHTML = '<strong>A.</strong> <span class="chat-loading">답변을 작성하고 있습니다...</span>';
+    chatEl.appendChild(answerDiv);
+    chatEl.scrollTop = chatEl.scrollHeight;
+
+    try {
+        const response = await fetch('/api/followup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                question,
+                saju_context: sajuContext,
+                chat_history: chatHistory,
+            }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let answerText = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const data = JSON.parse(line.slice(6).trim());
+                    if (data.type === 'text') {
+                        answerText += data.content;
+                        answerDiv.innerHTML = '<strong>A.</strong> ' + marked.parse(answerText);
+                        chatEl.scrollTop = chatEl.scrollHeight;
+                    }
+                } catch (e) {}
+            }
+        }
+
+        if (answerText) {
+            answerDiv.innerHTML = '<strong>A.</strong> ' + marked.parse(answerText);
+            chatHistory.push({ role: 'user', content: question });
+            chatHistory.push({ role: 'assistant', content: answerText });
+        }
+    } catch (err) {
+        answerDiv.innerHTML = '<strong>A.</strong> 답변을 가져오지 못했습니다.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '질문';
+        chatEl.scrollTop = chatEl.scrollHeight;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Enter 키로 질문 전송
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('followup-input');
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.isComposing) sendFollowup();
+        });
+    }
+});
 
 // ── 사주 표 렌더링 ──────────────────────────────────
 

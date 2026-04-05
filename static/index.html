@@ -114,6 +114,16 @@
                 <h2>AI 사주 해석</h2>
                 <div id="interpretation"></div>
             </div>
+
+            <!-- 추가 질문 -->
+            <div class="card" id="followup-card" style="display:none;">
+                <h2>추가 질문</h2>
+                <div id="followup-chat"></div>
+                <div class="followup-input-wrap">
+                    <input type="text" id="followup-input" placeholder="사주에 대해 더 궁금한 점을 물어보세요" />
+                    <button id="followup-btn" onclick="sendFollowup()">질문</button>
+                </div>
+            </div>
         </section>
 
         <footer>
