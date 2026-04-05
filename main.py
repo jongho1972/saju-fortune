@@ -21,7 +21,16 @@ load_dotenv()
 
 app = FastAPI(title="사주팔자 조회")
 
+# 서버 시작(배포) 시각 기록 (KST)
+from zoneinfo import ZoneInfo
+DEPLOY_TIME = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y년 %m월 %d일 %H:%M")
+
 client = AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+
+@app.get("/api/deploy-time")
+async def get_deploy_time():
+    return {"deploy_time": DEPLOY_TIME}
 
 SYSTEM_PROMPT = """당신은 사주를 아주 쉽게 설명해주는 친절한 선생님입니다.
 초등학생도 이해할 수 있을 정도로 쉽고 재미있게 사주팔자를 설명해주세요.

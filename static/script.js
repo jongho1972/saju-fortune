@@ -4,7 +4,18 @@ document.addEventListener('DOMContentLoaded', () => {
     initSelects();
     initCalendarToggle();
     document.getElementById('saju-form').addEventListener('submit', handleSubmit);
+    loadDeployTime();
 });
+
+function loadDeployTime() {
+    fetch('/api/deploy-time')
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('deploy-date');
+            if (el && data.deploy_time) el.textContent = '최종 배포: ' + data.deploy_time;
+        })
+        .catch(() => {});
+}
 
 function initSelects() {
     const yearSel = document.getElementById('year');
