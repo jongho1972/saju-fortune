@@ -269,7 +269,8 @@ def analyze_ohaeng(pillars: list[tuple[int, int]]) -> dict[str, int]:
 # ── 대운 계산 ──────────────────────────────────────────
 
 def calc_daewoon(solar_date: date, gender: str, year_cheongan_idx: int,
-                 month_cheongan_idx: int, month_jiji_idx: int) -> dict:
+                 month_cheongan_idx: int, month_jiji_idx: int,
+                 ilgan_idx: int) -> dict:
     """
     대운(大運)을 계산한다.
 
@@ -322,6 +323,8 @@ def calc_daewoon(solar_date: date, gender: str, year_cheongan_idx: int,
             "jiji_hanja": JIJI_HANJA[mj],
             "ohaeng_cheongan": CHEONGAN_OHAENG[mc],
             "ohaeng_jiji": JIJI_OHAENG[mj],
+            "sipsin_cheongan": get_sipsin(ilgan_idx, mc),
+            "sipsin_jiji": get_sipsin(ilgan_idx, JIJANGGAN_BONGI[mj]),
         })
 
     return {
@@ -365,8 +368,8 @@ def _find_prev_jeolgi(solar_date: date, year: int) -> date:
 
 # ── 세운(歲運) 계산 ────────────────────────────────────
 
-def calc_sewoon(current_year: int) -> dict:
-    """현재 년도의 세운(歲運)을 계산한다."""
+def calc_sewoon(current_year: int, ilgan_idx: int) -> dict:
+    """현재 년도의 세운(歲運)을 일간 기준 십신과 함께 계산한다."""
     c_idx = (current_year - 4) % 10
     j_idx = (current_year - 4) % 12
     return {
@@ -378,7 +381,43 @@ def calc_sewoon(current_year: int) -> dict:
         "ohaeng_cheongan": CHEONGAN_OHAENG[c_idx],
         "ohaeng_jiji": JIJI_OHAENG[j_idx],
         "ganji": f"{CHEONGAN[c_idx]}{JIJI[j_idx]}({CHEONGAN_HANJA[c_idx]}{JIJI_HANJA[j_idx]})",
+        "sipsin_cheongan": get_sipsin(ilgan_idx, c_idx),
+        "sipsin_jiji": get_sipsin(ilgan_idx, JIJANGGAN_BONGI[j_idx]),
     }
+
+
+# ── 월운(月運) 계산 ────────────────────────────────────
+
+def calc_wolwoon_next_12(base_date: date, ilgan_idx: int) -> list[dict]:
+    """
+    base_date가 속한 달부터 향후 12개월간의 월운(月運)을 계산한다.
+    각 월의 간지는 해당 월 15일을 기준으로 절기에 따라 산출하며,
+    일간 기준 십신 관계까지 포함한다.
+    """
+    results = []
+    y, m = base_date.year, base_date.month
+    for _ in range(12):
+        ref = date(y, m, 15)
+        yc, _yj = calc_year_pillar(ref)
+        mc, mj = calc_month_pillar(ref, yc)
+        results.append({
+            "year": y,
+            "month": m,
+            "cheongan": CHEONGAN[mc],
+            "cheongan_hanja": CHEONGAN_HANJA[mc],
+            "jiji": JIJI[mj],
+            "jiji_hanja": JIJI_HANJA[mj],
+            "ganji": f"{CHEONGAN_HANJA[mc]}{JIJI_HANJA[mj]}({CHEONGAN[mc]}{JIJI[mj]})",
+            "ohaeng_cheongan": CHEONGAN_OHAENG[mc],
+            "ohaeng_jiji": JIJI_OHAENG[mj],
+            "sipsin_cheongan": get_sipsin(ilgan_idx, mc),
+            "sipsin_jiji": get_sipsin(ilgan_idx, JIJANGGAN_BONGI[mj]),
+        })
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+    return results
 
 
 # ── 현재 대운 찾기 ────────────────────────────────────
@@ -452,17 +491,21 @@ def calculate_saju(
         "year_jiji": get_sipsin(ilgan_idx, JIJANGGAN_BONGI[year_j]),
         "month_cheongan": get_sipsin(ilgan_idx, month_c),
         "month_jiji": get_sipsin(ilgan_idx, JIJANGGAN_BONGI[month_j]),
+        "day_jiji": get_sipsin(ilgan_idx, JIJANGGAN_BONGI[day_j]),  # 배우자궁
     }
     if has_hour:
         sipsin["hour_cheongan"] = get_sipsin(ilgan_idx, hour_c)
         sipsin["hour_jiji"] = get_sipsin(ilgan_idx, JIJANGGAN_BONGI[hour_j])
 
     # 5. 대운 계산
-    daewoon = calc_daewoon(solar_date, gender, year_c, month_c, month_j)
+    daewoon = calc_daewoon(solar_date, gender, year_c, month_c, month_j, ilgan_idx)
     current_dw = find_current_daewoon(daewoon, solar_date.year, current_year)
 
     # 6. 세운 계산
-    sewoon = calc_sewoon(current_year)
+    sewoon = calc_sewoon(current_year, ilgan_idx)
+
+    # 6-1. 향후 12개월 월운 계산 (오늘 기준)
+    wolwoon = calc_wolwoon_next_12(date.today(), ilgan_idx)
 
     # 7. 결과 조합
     def pillar_info(c_idx, j_idx):
@@ -504,6 +547,7 @@ def calculate_saju(
         "daewoon": daewoon,
         "current_daewoon": current_dw,
         "sewoon": sewoon,
+        "wolwoon": wolwoon,
         "has_hour": has_hour,
     }
 
