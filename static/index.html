@@ -79,7 +79,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="minute">분</label>
+                        <label for="minute">분 <span class="hint">(선택)</span></label>
                         <select id="minute">
                             <option value="0">0분</option>
                             <option value="10">10분</option>
@@ -91,27 +91,25 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="apply_solar_time" checked>
-                            진태양시 보정 (한국 출생)
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label>자시 처리</label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="time_system" value="joja" checked>
-                                <span>조자시 (당일)</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="time_system" value="yaja">
-                                <span>야자시 (익일)</span>
-                            </label>
+                <details class="advanced-settings">
+                    <summary>고급 설정</summary>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>23시 출생자 처리 <span class="hint">(자시 학파 선택)</span></label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="time_system" value="joja" checked>
+                                    <span>당일 일주 (일반)</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="time_system" value="yaja">
+                                    <span>익일 일주</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
-                </div>
+                    <p class="advanced-note">한국 출생자에게는 진태양시 보정(약 -32분)이 자동 적용됩니다.</p>
+                </details>
 
                 <button type="submit" id="submit-btn">
                     <span class="btn-text">사주 분석하기</span>

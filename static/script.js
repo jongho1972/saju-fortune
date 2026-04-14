@@ -91,7 +91,7 @@ async function handleSubmit(e) {
         calendar_type: document.querySelector('input[name="calendar_type"]:checked').value,
         is_intercalation: document.getElementById('is_intercalation').checked,
         birth_place: "",
-        apply_solar_time: document.getElementById('apply_solar_time').checked,
+        apply_solar_time: true,
         time_system: document.querySelector('input[name="time_system"]:checked').value,
     };
 
@@ -314,13 +314,15 @@ function renderSajuTable(saju) {
     const infoEl = document.getElementById('saju-info');
     let timeNote = '';
     if (saju.has_hour && saju.solar_time_offset !== 0) {
-        const sign = saju.solar_time_offset > 0 ? '+' : '';
-        timeNote = ` <span class="solar-note">(진태양시 보정 ${sign}${saju.solar_time_offset}분 적용)</span>`;
+        const eh = saju.effective_hour;
+        const em = String(saju.effective_minute).padStart(2, '0');
+        timeNote = `<div class="solar-note">출생 시각을 서울 기준 진태양시로 보정해 ${eh}시 ${em}분으로 계산했어요.</div>`;
     }
     infoEl.innerHTML = `
         <strong>${saju.name}</strong>님 (${saju.gender}) |
         ${saju.birth_date} |
-        ${saju.ddi}띠${timeNote}
+        ${saju.ddi}띠
+        ${timeNote}
     `;
 
     // 사주 표
