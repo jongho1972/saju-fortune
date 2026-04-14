@@ -78,6 +78,39 @@
                             <option value="">모름</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="minute">분</label>
+                        <select id="minute">
+                            <option value="0">0분</option>
+                            <option value="10">10분</option>
+                            <option value="20">20분</option>
+                            <option value="30">30분</option>
+                            <option value="40">40분</option>
+                            <option value="50">50분</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="apply_solar_time" checked>
+                            진태양시 보정 (한국 출생)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>자시 처리</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="time_system" value="joja" checked>
+                                <span>조자시 (당일)</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="time_system" value="yaja">
+                                <span>야자시 (익일)</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" id="submit-btn">

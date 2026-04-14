@@ -86,10 +86,13 @@ async function handleSubmit(e) {
         month: document.getElementById('month').value,
         day: document.getElementById('day').value,
         hour: document.getElementById('hour').value || null,
+        minute: document.getElementById('minute').value || 0,
         gender: document.querySelector('input[name="gender"]:checked').value,
         calendar_type: document.querySelector('input[name="calendar_type"]:checked').value,
         is_intercalation: document.getElementById('is_intercalation').checked,
         birth_place: "",
+        apply_solar_time: document.getElementById('apply_solar_time').checked,
+        time_system: document.querySelector('input[name="time_system"]:checked').value,
     };
 
     if (!formData.name) {
@@ -309,10 +312,15 @@ const OHAENG_LABELS = {
 function renderSajuTable(saju) {
     // 기본 정보
     const infoEl = document.getElementById('saju-info');
+    let timeNote = '';
+    if (saju.has_hour && saju.solar_time_offset !== 0) {
+        const sign = saju.solar_time_offset > 0 ? '+' : '';
+        timeNote = ` <span class="solar-note">(진태양시 보정 ${sign}${saju.solar_time_offset}분 적용)</span>`;
+    }
     infoEl.innerHTML = `
         <strong>${saju.name}</strong>님 (${saju.gender}) |
         ${saju.birth_date} |
-        ${saju.ddi}띠
+        ${saju.ddi}띠${timeNote}
     `;
 
     // 사주 표

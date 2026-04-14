@@ -77,13 +77,13 @@ JIJANGGAN = {
     0:  [9, ],         # 자: 계
     1:  [9, 7, 5],     # 축: 계, 신, 기
     2:  [4, 2, 0],     # 인: 무, 병, 갑
-    3:  [0, ],         # 묘: 갑 (을이 본기이지만 간략히)
+    3:  [1, ],         # 묘: 을 (본기)
     4:  [1, 9, 4],     # 진: 을, 계, 무
     5:  [4, 6, 2],     # 사: 무, 경, 병
-    6:  [5, ],         # 오: 기 (정이 본기)
+    6:  [5, 3],        # 오: 기, 정 (본기)
     7:  [5, 1, 3],     # 미: 기, 을, 정
     8:  [4, 8, 6],     # 신: 무, 임, 경
-    9:  [6, ],         # 유: 경 (신이 본기)
+    9:  [7, ],         # 유: 신 (본기)
     10: [7, 3, 4],     # 술: 신, 정, 무
     11: [4, 0, 8],     # 해: 무, 갑, 임
 }
@@ -121,6 +121,52 @@ DAY_HOUR_START = {
     0: 0, 1: 2, 2: 4, 3: 6, 4: 8,  # 갑→갑, 을→병, 병→무, 정→경, 무→임
     5: 0, 6: 2, 7: 4, 8: 6, 9: 8,  # 기→갑, 경→병, 신→무, 임→경, 계→임
 }
+
+
+# ── 진태양시(真太陽時) 보정 ────────────────────────────
+
+# 서울 경도 (참고: 한국천문연구원 표준)
+KOREA_LONGITUDE = 126.978
+
+
+def get_historical_meridian(d: date) -> float:
+    """출생일에 적용되던 한국 표준시 자오선(경도)을 반환한다.
+
+    역사적 표준시 변천:
+    - ~1908-03-31: 한국 지방시 미정 (서울 LMT)
+    - 1908-04-01 ~ 1911-12-31: KST +08:30 (127.5°E)
+    - 1912-01-01 ~ 1954-03-20: JST +09:00 (135°E, 일제강점기)
+    - 1954-03-21 ~ 1961-08-09: KST +08:30 (127.5°E)
+    - 1961-08-10 ~ 현재: KST +09:00 (135°E)
+    """
+    if d < date(1908, 4, 1):
+        return KOREA_LONGITUDE  # 사실상 보정 없음
+    if d < date(1912, 1, 1):
+        return 127.5
+    if d < date(1954, 3, 21):
+        return 135.0
+    if d < date(1961, 8, 10):
+        return 127.5
+    return 135.0
+
+
+def apply_true_solar_time(d: date, hour: int, minute: int) -> tuple[date, int, int]:
+    """벽시계 시각을 진태양시로 변환한다. (날짜, 시, 분) 반환.
+
+    경도 보정만 적용 (균시차 ±16분은 무시 — 평균오차 0).
+    날짜 경계를 넘으면 date도 함께 이동한다.
+    """
+    meridian = get_historical_meridian(d)
+    offset_min = round((KOREA_LONGITUDE - meridian) * 4)  # 1도 = 4분
+    total = hour * 60 + minute + offset_min
+    new_date = d
+    if total < 0:
+        new_date = d - timedelta(days=1)
+        total += 24 * 60
+    elif total >= 24 * 60:
+        new_date = d + timedelta(days=1)
+        total -= 24 * 60
+    return new_date, total // 60, total % 60
 
 
 # ── 음양력 변환 ────────────────────────────────────────
@@ -218,7 +264,7 @@ _BASE_JIJI = 10      # 술(戌) = 10
 def calc_day_pillar(solar_date: date) -> tuple[int, int]:
     """
     일주(日柱)를 계산한다.
-    기준일(1900-01-01 경자일)로부터의 일수 차이로 산출한다.
+    기준일(1900-01-01 갑술일)로부터의 일수 차이로 산출한다.
 
     Returns:
         (천간인덱스, 지지인덱스) 튜플
@@ -368,12 +414,21 @@ def _find_prev_jeolgi(solar_date: date, year: int) -> date:
 
 # ── 세운(歲運) 계산 ────────────────────────────────────
 
-def calc_sewoon(current_year: int, ilgan_idx: int) -> dict:
-    """현재 년도의 세운(歲運)을 일간 기준 십신과 함께 계산한다."""
-    c_idx = (current_year - 4) % 10
-    j_idx = (current_year - 4) % 12
+def calc_sewoon(current_year: int, ilgan_idx: int, ref_date: date | None = None) -> dict:
+    """현재 년도의 세운(歲運)을 일간 기준 십신과 함께 계산한다.
+
+    ref_date가 주어지면 입춘 기준으로 년도를 보정한다 (입춘 전이면 전년 세운).
+    """
+    year = current_year
+    if ref_date is not None:
+        ipchun = get_solar_term_date(current_year, 0)
+        ipchun_date = date(current_year, ipchun[0], ipchun[1])
+        if ref_date < ipchun_date:
+            year = current_year - 1
+    c_idx = (year - 4) % 10
+    j_idx = (year - 4) % 12
     return {
-        "year": current_year,
+        "year": year,
         "cheongan": CHEONGAN[c_idx],
         "cheongan_hanja": CHEONGAN_HANJA[c_idx],
         "jiji": JIJI[j_idx],
@@ -420,6 +475,221 @@ def calc_wolwoon_next_12(base_date: date, ilgan_idx: int) -> list[dict]:
     return results
 
 
+# ── 신살(神殺) ──────────────────────────────────────────
+
+# 일주 60갑자 그룹별 공망 지지 인덱스
+GONGMANG_BY_GROUP = {
+    0: (10, 11),  # 갑자순(갑자~계유) → 술해 공망
+    1: (8, 9),    # 갑술순(갑술~계미) → 신유 공망
+    2: (6, 7),    # 갑신순(갑신~계사) → 오미 공망
+    3: (4, 5),    # 갑오순(갑오~계묘) → 진사 공망
+    4: (2, 3),    # 갑진순(갑진~계축) → 인묘 공망
+    5: (0, 1),    # 갑인순(갑인~계해) → 자축 공망
+}
+
+# 천을귀인: 일간 인덱스 → (지지1, 지지2)
+CHEONEUL_GUIN = {
+    0: (1, 7),    # 갑 → 축미
+    4: (1, 7),    # 무 → 축미
+    6: (1, 7),    # 경 → 축미
+    1: (0, 8),    # 을 → 자신
+    5: (0, 8),    # 기 → 자신
+    2: (11, 9),   # 병 → 해유
+    3: (11, 9),   # 정 → 해유
+    7: (2, 6),    # 신 → 인오
+    8: (5, 3),    # 임 → 사묘
+    9: (5, 3),    # 계 → 사묘
+}
+
+# 삼합 신살: 지지 인덱스 → (도화, 역마, 화개) 인덱스
+# 신자진(8/0/4) → 유/인/진, 인오술(2/6/10) → 묘/신/술
+# 사유축(5/9/1) → 오/해/축, 해묘미(11/3/7) → 자/사/미
+SAMHAP_SINSAL = {
+    8: (9, 2, 4),  0: (9, 2, 4),  4: (9, 2, 4),
+    2: (3, 8, 10), 6: (3, 8, 10), 10: (3, 8, 10),
+    5: (6, 11, 1), 9: (6, 11, 1), 1: (6, 11, 1),
+    11: (0, 5, 7), 3: (0, 5, 7),  7: (0, 5, 7),
+}
+
+
+def calc_sinsal(day_cheongan_idx: int, day_jiji_idx: int,
+                all_jiji_indices: list[int], day_60_idx: int) -> dict:
+    """주요 신살을 계산한다. (공망/천을귀인/도화/역마/화개)"""
+    group = day_60_idx // 10
+    g1, g2 = GONGMANG_BY_GROUP[group]
+    guin = CHEONEUL_GUIN[day_cheongan_idx]
+    dohwa, yeokma, hwagae = SAMHAP_SINSAL[day_jiji_idx]
+
+    return {
+        "gongmang": [JIJI[g1], JIJI[g2]],
+        "gongmang_in_saju": [JIJI[j] for j in all_jiji_indices if j in (g1, g2)],
+        "cheoneul_guin": [JIJI[guin[0]], JIJI[guin[1]]],
+        "has_cheoneul_guin": any(j in guin for j in all_jiji_indices),
+        "dohwa": JIJI[dohwa],
+        "has_dohwa": dohwa in all_jiji_indices,
+        "yeokma": JIJI[yeokma],
+        "has_yeokma": yeokma in all_jiji_indices,
+        "hwagae": JIJI[hwagae],
+        "has_hwagae": hwagae in all_jiji_indices,
+    }
+
+
+# ── 합충형(合沖刑) ──────────────────────────────────────
+
+CHEONGAN_HAP = [(0, 5, "토"), (1, 6, "금"), (2, 7, "수"), (3, 8, "목"), (4, 9, "화")]
+
+JIJI_YUKHAP = [
+    (0, 1, "토"), (2, 11, "목"), (3, 10, "화"),
+    (4, 9, "금"), (5, 8, "수"), (6, 7, ""),
+]
+
+JIJI_SAMHAP = [
+    ((8, 0, 4), "수"), ((2, 6, 10), "화"),
+    ((5, 9, 1), "금"), ((11, 3, 7), "목"),
+]
+
+JIJI_BANGHAP = [
+    ((2, 3, 4), "목"), ((5, 6, 7), "화"),
+    ((8, 9, 10), "금"), ((11, 0, 1), "수"),
+]
+
+JIJI_CHUNG = [(0, 6), (1, 7), (2, 8), (3, 9), (4, 10), (5, 11)]
+
+JIJI_SAMHYEONG = [(2, 5, 8), (1, 10, 7)]  # 인사신, 축술미
+JIJI_SANGHYEONG = (0, 3)  # 자묘
+JIJI_JAHYEONG = {4, 6, 9, 11}  # 진/오/유/해 자형
+
+
+def calc_hapchunghyeong(cheongan_indices: list[int],
+                         jiji_indices: list[int]) -> dict:
+    """천간합/지지합·충·형 판정. 사주 내 발생한 것만 반환."""
+    result = {"cheongan_hap": [], "yukhap": [], "samhap": [],
+              "banghap": [], "chung": [], "hyeong": []}
+
+    cset = set(cheongan_indices)
+    for a, b, oh in CHEONGAN_HAP:
+        if a in cset and b in cset:
+            result["cheongan_hap"].append(f"{CHEONGAN[a]}{CHEONGAN[b]}합({oh})")
+
+    jset = set(jiji_indices)
+    for a, b, oh in JIJI_YUKHAP:
+        if a in jset and b in jset:
+            label = f"{JIJI[a]}{JIJI[b]}합"
+            if oh:
+                label += f"({oh})"
+            result["yukhap"].append(label)
+
+    for trio, oh in JIJI_SAMHAP:
+        present = [j for j in trio if j in jset]
+        if len(present) == 3:
+            result["samhap"].append(
+                f"{''.join(JIJI[j] for j in trio)} 삼합({oh})")
+        elif len(present) == 2:
+            result["samhap"].append(
+                f"{''.join(JIJI[j] for j in present)} 반합({oh})")
+
+    for trio, oh in JIJI_BANGHAP:
+        present = [j for j in trio if j in jset]
+        if len(present) >= 2:
+            label = f"{''.join(JIJI[j] for j in present)} 방합({oh})"
+            if len(present) == 3:
+                label += " 완성"
+            result["banghap"].append(label)
+
+    for a, b in JIJI_CHUNG:
+        if a in jset and b in jset:
+            result["chung"].append(f"{JIJI[a]}{JIJI[b]}충")
+
+    for trio in JIJI_SAMHYEONG:
+        present = [j for j in trio if j in jset]
+        if len(present) >= 2:
+            result["hyeong"].append(
+                f"{''.join(JIJI[j] for j in present)} 형({'삼형 완성' if len(present)==3 else '부분'})")
+    if JIJI_SANGHYEONG[0] in jset and JIJI_SANGHYEONG[1] in jset:
+        result["hyeong"].append("자묘 상형")
+    for j in JIJI_JAHYEONG:
+        if jiji_indices.count(j) >= 2:
+            result["hyeong"].append(f"{JIJI[j]}{JIJI[j]} 자형")
+
+    return result
+
+
+# ── 신강신약 + 용신 1차 판정 ───────────────────────────
+
+def calc_sinkang_yongsin(ilgan_idx: int,
+                          year_c: int, year_j: int,
+                          month_c: int, month_j: int,
+                          day_j: int,
+                          hour_c: int | None = None,
+                          hour_j: int | None = None) -> dict:
+    """신강/신약을 가중치 점수로 1차 판정하고 용신 후보를 산출한다.
+
+    가중치: 월지 본기 ×3 (월령), 일지 ×2, 년지/시지 ×1.5, 천간 ×1.
+    일간 자체는 점수 산정에서 제외(일간 오행 분포에는 +1).
+
+    일간을 돕는 오행(비겁·인성)이 전체 가중치의 ≥58%면 신강,
+    ≤42%면 신약, 그 사이는 중화.
+    """
+    il_oh = CHEONGAN_OHAENG[ilgan_idx]
+    il_oh_idx = OHAENG_INDEX[il_oh]
+
+    items: list[tuple[str, float]] = [
+        (CHEONGAN_OHAENG[year_c], 1.0),
+        (CHEONGAN_OHAENG[month_c], 1.0),
+        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[year_j]], 1.5),
+        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[month_j]], 3.0),  # 월령
+        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[day_j]], 2.0),
+    ]
+    if hour_c is not None and hour_j is not None:
+        items.append((CHEONGAN_OHAENG[hour_c], 1.0))
+        items.append((CHEONGAN_OHAENG[JIJANGGAN_BONGI[hour_j]], 1.5))
+
+    pos = 0.0  # 일간을 돕는 점수 (비겁·인성)
+    neg = 0.0  # 일간을 빼는 점수 (식상·재성·관성)
+    ohaeng_weighted = {oh: 0.0 for oh in OHAENG_ORDER}
+    for oh, w in items:
+        ohaeng_weighted[oh] += w
+        d = (OHAENG_INDEX[oh] - il_oh_idx) % 5
+        if d in (0, 4):
+            pos += w
+        else:
+            neg += w
+    ohaeng_weighted[il_oh] += 1.0  # 일간 자체
+
+    total = pos + neg
+    pos_pct = (pos / total * 100) if total > 0 else 50.0
+
+    if pos_pct >= 58:
+        sin = "신강"
+        diffs = [1, 2, 3]
+        direction = "설기·억제"
+    elif pos_pct <= 42:
+        sin = "신약"
+        diffs = [0, 4]
+        direction = "보강·도움"
+    else:
+        sin = "중화"
+        diffs = [1, 2]
+        direction = "균형 유지"
+
+    cands = []
+    for d in diffs:
+        oh = OHAENG_ORDER[(il_oh_idx + d) % 5]
+        cands.append((oh, ohaeng_weighted[oh]))
+    cands.sort(key=lambda x: x[1])  # 가장 부족한 것이 1순위 용신
+
+    return {
+        "sinkang": sin,
+        "pos_score": round(pos, 1),
+        "neg_score": round(neg, 1),
+        "pos_ratio": round(pos_pct, 1),
+        "direction": direction,
+        "yongsin": cands[0][0],
+        "yongsin_candidates": [oh for oh, _ in cands],
+        "ohaeng_weighted": {k: round(v, 1) for k, v in ohaeng_weighted.items()},
+    }
+
+
 # ── 현재 대운 찾기 ────────────────────────────────────
 
 def find_current_daewoon(daewoon: dict, birth_year: int, current_year: int) -> dict | None:
@@ -440,10 +710,13 @@ def calculate_saju(
     day: int,
     hour: int | None,
     gender: str,
+    minute: int = 0,
     calendar_type: str = "solar",
     is_intercalation: bool = False,
     birth_place: str = "",
     current_year: int = 2026,
+    apply_solar_time: bool = True,
+    time_system: str = "joja",
 ) -> dict:
     """
     사주팔자를 종합 계산한다.
@@ -467,16 +740,33 @@ def calculate_saju(
     else:
         solar_date = date(year, month, day)
 
-    # 2. 사주 계산
-    year_c, year_j = calc_year_pillar(solar_date)
-    month_c, month_j = calc_month_pillar(solar_date, year_c)
-    day_c, day_j = calc_day_pillar(solar_date)
-
-    pillars = [(year_c, year_j), (month_c, month_j), (day_c, day_j)]
     has_hour = hour is not None
 
+    # 1-1. 진태양시 보정 (시주가 있는 경우만)
+    effective_date = solar_date
+    effective_hour = hour
+    effective_minute = minute
+    solar_time_offset = 0
+    if has_hour and apply_solar_time:
+        meridian = get_historical_meridian(solar_date)
+        solar_time_offset = round((KOREA_LONGITUDE - meridian) * 4)
+        effective_date, effective_hour, effective_minute = apply_true_solar_time(
+            solar_date, hour, minute
+        )
+
+    # 1-2. 야자시 보정: 23시 출생 + 야자시 옵션이면 일주를 익일로
+    if has_hour and time_system == "yaja" and effective_hour == 23:
+        effective_date = effective_date + timedelta(days=1)
+
+    # 2. 사주 계산 (보정된 날짜 기준)
+    year_c, year_j = calc_year_pillar(effective_date)
+    month_c, month_j = calc_month_pillar(effective_date, year_c)
+    day_c, day_j = calc_day_pillar(effective_date)
+
+    pillars = [(year_c, year_j), (month_c, month_j), (day_c, day_j)]
+
     if has_hour:
-        hour_c, hour_j = calc_hour_pillar(hour, day_c)
+        hour_c, hour_j = calc_hour_pillar(effective_hour, day_c)
         pillars.append((hour_c, hour_j))
     else:
         hour_c, hour_j = None, None
@@ -497,15 +787,35 @@ def calculate_saju(
         sipsin["hour_cheongan"] = get_sipsin(ilgan_idx, hour_c)
         sipsin["hour_jiji"] = get_sipsin(ilgan_idx, JIJANGGAN_BONGI[hour_j])
 
-    # 5. 대운 계산
-    daewoon = calc_daewoon(solar_date, gender, year_c, month_c, month_j, ilgan_idx)
-    current_dw = find_current_daewoon(daewoon, solar_date.year, current_year)
+    # 5. 대운 계산 (진태양시 보정된 날짜 기준)
+    daewoon = calc_daewoon(effective_date, gender, year_c, month_c, month_j, ilgan_idx)
+    current_dw = find_current_daewoon(daewoon, effective_date.year, current_year)
 
-    # 6. 세운 계산
-    sewoon = calc_sewoon(current_year, ilgan_idx)
+    # 6. 세운 계산 (오늘 기준 입춘 보정)
+    sewoon = calc_sewoon(current_year, ilgan_idx, ref_date=date.today())
 
     # 6-1. 향후 12개월 월운 계산 (오늘 기준)
     wolwoon = calc_wolwoon_next_12(date.today(), ilgan_idx)
+
+    # 6-2. 신살 계산
+    days_diff = (effective_date - _BASE_DATE).days
+    day_60_idx = (10 + days_diff) % 60  # 1900-01-01 = 갑술(10)
+    all_jiji = [year_j, month_j, day_j]
+    if has_hour:
+        all_jiji.append(hour_j)
+    sinsal = calc_sinsal(ilgan_idx, day_j, all_jiji, day_60_idx)
+
+    # 6-3. 합충형 판정
+    all_cheongan = [year_c, month_c, day_c]
+    if has_hour:
+        all_cheongan.append(hour_c)
+    hapchunghyeong = calc_hapchunghyeong(all_cheongan, all_jiji)
+
+    # 6-4. 신강신약 + 용신
+    sinkang = calc_sinkang_yongsin(
+        ilgan_idx, year_c, year_j, month_c, month_j, day_j,
+        hour_c if has_hour else None, hour_j if has_hour else None
+    )
 
     # 7. 결과 조합
     def pillar_info(c_idx, j_idx):
@@ -525,6 +835,12 @@ def calculate_saju(
         "gender": "남" if gender == "male" else "여",
         "birth_date": solar_date.isoformat(),
         "birth_hour": hour,
+        "birth_minute": minute,
+        "solar_time_offset": solar_time_offset,
+        "effective_date": effective_date.isoformat(),
+        "effective_hour": effective_hour,
+        "effective_minute": effective_minute,
+        "time_system": time_system,
         "calendar_type": calendar_type,
         "birth_place": birth_place,
         "ddi": DDI[year_j],  # 띠
@@ -548,6 +864,9 @@ def calculate_saju(
         "current_daewoon": current_dw,
         "sewoon": sewoon,
         "wolwoon": wolwoon,
+        "sinsal": sinsal,
+        "hapchunghyeong": hapchunghyeong,
+        "sinkang": sinkang,
         "has_hour": has_hour,
     }
 
