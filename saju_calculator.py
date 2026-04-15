@@ -128,8 +128,38 @@ DAY_HOUR_START = {
 
 # ── 진태양시(真太陽時) 보정 ────────────────────────────
 
-# 서울 경도 (참고: 한국천문연구원 표준)
+# 서울 경도 (기본값; 한국천문연구원 표준)
 KOREA_LONGITUDE = 126.978
+
+# 한국 주요 지역 경도 (출생지별 진태양시 보정용)
+REGION_LONGITUDE: dict[str, tuple[str, float]] = {
+    "seoul":     ("서울",   126.978),
+    "incheon":   ("인천",   126.705),
+    "suwon":     ("수원",   127.029),
+    "chuncheon": ("춘천",   127.734),
+    "gangneung": ("강릉",   128.876),
+    "cheongju":  ("청주",   127.489),
+    "daejeon":   ("대전",   127.385),
+    "jeonju":    ("전주",   127.148),
+    "gwangju":   ("광주",   126.852),
+    "mokpo":     ("목포",   126.392),
+    "daegu":     ("대구",   128.601),
+    "andong":    ("안동",   128.729),
+    "pohang":    ("포항",   129.343),
+    "ulsan":     ("울산",   129.311),
+    "busan":     ("부산",   129.075),
+    "changwon":  ("창원",   128.682),
+    "jeju":      ("제주",   126.530),
+    "baekryeong":("백령도", 124.718),
+    "ulleung":   ("울릉도", 130.906),
+}
+
+
+def get_region_longitude(region_key: str | None) -> tuple[str, float]:
+    """지역 키로 (표시명, 경도) 반환. 미지정/알 수 없는 값은 서울 기본."""
+    if not region_key:
+        return REGION_LONGITUDE["seoul"]
+    return REGION_LONGITUDE.get(region_key, REGION_LONGITUDE["seoul"])
 
 
 def get_historical_meridian(d: date) -> float:
@@ -153,14 +183,16 @@ def get_historical_meridian(d: date) -> float:
     return 135.0
 
 
-def apply_true_solar_time(d: date, hour: int, minute: int) -> tuple[date, int, int]:
+def apply_true_solar_time(d: date, hour: int, minute: int,
+                           birth_longitude: float = KOREA_LONGITUDE) -> tuple[date, int, int]:
     """벽시계 시각을 진태양시로 변환한다. (날짜, 시, 분) 반환.
 
     경도 보정만 적용 (균시차 ±16분은 무시 — 평균오차 0).
+    birth_longitude로 출생지 경도를 지정하면 지역별 보정이 반영된다.
     날짜 경계를 넘으면 date도 함께 이동한다.
     """
     meridian = get_historical_meridian(d)
-    offset_min = round((KOREA_LONGITUDE - meridian) * 4)  # 1도 = 4분
+    offset_min = round((birth_longitude - meridian) * 4)  # 1도 = 4분
     total = hour * 60 + minute + offset_min
     new_date = d
     if total < 0:
@@ -878,6 +910,7 @@ def calculate_saju(
     calendar_type: str = "solar",
     is_intercalation: bool = False,
     birth_place: str = "",
+    birth_region: str = "seoul",
     current_year: int = 2026,
     apply_solar_time: bool = True,
     time_system: str = "joja",
@@ -911,11 +944,12 @@ def calculate_saju(
     effective_hour = hour
     effective_minute = minute
     solar_time_offset = 0
+    region_name, region_longitude = get_region_longitude(birth_region)
     if has_hour and apply_solar_time:
         meridian = get_historical_meridian(solar_date)
-        solar_time_offset = round((KOREA_LONGITUDE - meridian) * 4)
+        solar_time_offset = round((region_longitude - meridian) * 4)
         effective_date, effective_hour, effective_minute = apply_true_solar_time(
-            solar_date, hour, minute
+            solar_date, hour, minute, region_longitude
         )
 
     # 1-2. 야자시 보정: 23시 출생 + 야자시 옵션이면 일주를 익일로
@@ -1007,6 +1041,9 @@ def calculate_saju(
         "time_system": time_system,
         "calendar_type": calendar_type,
         "birth_place": birth_place,
+        "birth_region": birth_region,
+        "birth_region_name": region_name,
+        "birth_longitude": region_longitude,
         "ddi": DDI[year_j],  # 띠
 
         "year_pillar": pillar_info(year_c, year_j),

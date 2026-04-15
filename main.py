@@ -305,6 +305,7 @@ async def analyze_saju(request: Request):
     calendar_type = data.get("calendar_type", "solar")
     is_intercalation = data.get("is_intercalation", False)
     birth_place = data.get("birth_place", "")
+    birth_region = data.get("birth_region", "seoul")
     apply_solar_time = data.get("apply_solar_time", True)
     time_system = data.get("time_system", "joja")
 
@@ -322,6 +323,7 @@ async def analyze_saju(request: Request):
         calendar_type=calendar_type,
         is_intercalation=is_intercalation,
         birth_place=birth_place,
+        birth_region=birth_region,
         current_year=current_year,
         apply_solar_time=apply_solar_time,
         time_system=time_system,

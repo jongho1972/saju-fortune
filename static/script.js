@@ -91,6 +91,7 @@ async function handleSubmit(e) {
         calendar_type: document.querySelector('input[name="calendar_type"]:checked').value,
         is_intercalation: document.getElementById('is_intercalation').checked,
         birth_place: "",
+        birth_region: document.getElementById('birth_region').value,
         apply_solar_time: true,
         time_system: document.querySelector('input[name="time_system"]:checked').value,
     };
@@ -316,7 +317,8 @@ function renderSajuTable(saju) {
     if (saju.has_hour && saju.solar_time_offset !== 0) {
         const eh = saju.effective_hour;
         const em = String(saju.effective_minute).padStart(2, '0');
-        timeNote = `<div class="solar-note">출생 시각을 서울 기준 진태양시로 보정해 ${eh}시 ${em}분으로 계산했어요.</div>`;
+        const regionName = saju.birth_region_name || '서울';
+        timeNote = `<div class="solar-note">출생 시각을 ${regionName} 기준 진태양시로 보정해 ${eh}시 ${em}분으로 계산했어요.</div>`;
     }
     infoEl.innerHTML = `
         <strong>${saju.name}</strong>님 (${saju.gender}) |
