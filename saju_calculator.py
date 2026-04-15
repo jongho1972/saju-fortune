@@ -22,8 +22,11 @@ CHEONGAN_OHAENG = ["목", "목", "화", "화", "토", "토", "금", "금", "수"
 # 지지 → 오행
 JIJI_OHAENG = ["수", "토", "목", "목", "토", "화", "화", "토", "금", "금", "토", "수"]
 
-# 천간 → 음양 (0=양, 1=음)
+# 천간 → 음양 (짝수 인덱스=양, 홀수 인덱스=음)
 CHEONGAN_EUMYANG = ["양", "음", "양", "음", "양", "음", "양", "음", "양", "음"]
+
+# 지지 → 음양 (체體 관점: 자인진오신술=양, 축묘사미유해=음)
+JIJI_EUMYANG = ["양", "음", "양", "음", "양", "음", "양", "음", "양", "음", "양", "음"]
 
 # 오행 한자
 OHAENG_HANJA = {"목": "木", "화": "火", "토": "土", "금": "金", "수": "水"}
@@ -614,6 +617,73 @@ def calc_hapchunghyeong(cheongan_indices: list[int],
     return result
 
 
+# ── 조후용신(調候用神) ────────────────────────────────
+#
+# 『궁통보감(窮通寶鑑)』 계열 조후 이론의 간략판.
+# (일간, 월지) 조합별 1순위 조후 오행만 정리한다.
+# 실제 궁통보감은 1~3순위 천간을 지정하지만, 본 시스템은
+# 오행 단위 추천으로 단순화한다.
+
+JOHU_YONGSIN_TABLE = {
+    # 갑(甲) — 陽木, 큰 나무
+    0: {2: "화", 3: "금", 4: "금", 5: "수", 6: "수", 7: "수",
+        8: "화", 9: "화", 10: "수", 11: "화", 0: "화", 1: "화"},
+    # 을(乙) — 陰木, 화초
+    1: {2: "화", 3: "화", 4: "수", 5: "수", 6: "수", 7: "수",
+        8: "화", 9: "수", 10: "수", 11: "화", 0: "화", 1: "화"},
+    # 병(丙) — 陽火, 태양 (수로 조절, 한겨울엔 목이 통관)
+    2: {2: "수", 3: "수", 4: "수", 5: "수", 6: "수", 7: "수",
+        8: "수", 9: "수", 10: "목", 11: "목", 0: "목", 1: "수"},
+    # 정(丁) — 陰火, 등촉 (목으로 지속)
+    3: {2: "목", 3: "금", 4: "목", 5: "목", 6: "수", 7: "목",
+        8: "목", 9: "목", 10: "목", 11: "목", 0: "목", 1: "목"},
+    # 무(戊) — 陽土, 큰 산
+    4: {2: "화", 3: "화", 4: "목", 5: "수", 6: "수", 7: "수",
+        8: "화", 9: "화", 10: "목", 11: "화", 0: "화", 1: "화"},
+    # 기(己) — 陰土, 전답
+    5: {2: "화", 3: "목", 4: "화", 5: "수", 6: "수", 7: "수",
+        8: "화", 9: "화", 10: "목", 11: "화", 0: "화", 1: "화"},
+    # 경(庚) — 陽金, 강철 (화로 제련)
+    6: {2: "화", 3: "화", 4: "목", 5: "수", 6: "수", 7: "화",
+        8: "화", 9: "화", 10: "목", 11: "화", 0: "화", 1: "화"},
+    # 신(辛) — 陰金, 보석 (수로 세척)
+    7: {2: "토", 3: "수", 4: "수", 5: "수", 6: "수", 7: "수",
+        8: "수", 9: "수", 10: "수", 11: "수", 0: "화", 1: "화"},
+    # 임(壬) — 陽水, 큰 강 (토로 제방, 한겨울엔 화)
+    8: {2: "금", 3: "토", 4: "목", 5: "금", 6: "수", 7: "금",
+        8: "토", 9: "목", 10: "목", 11: "토", 0: "토", 1: "화"},
+    # 계(癸) — 陰水, 비·이슬
+    9: {2: "금", 3: "금", 4: "화", 5: "금", 6: "금", 7: "금",
+        8: "화", 9: "금", 10: "금", 11: "금", 0: "화", 1: "화"},
+}
+
+# 극단 계절 (조후 최우선 적용)
+EXTREME_HOT_MONTHS = {5, 6, 7}    # 사·오·미 (한여름)
+EXTREME_COLD_MONTHS = {11, 0, 1}  # 해·자·축 (한겨울)
+
+
+def get_johu_yongsin(ilgan_idx: int, month_jiji_idx: int) -> str:
+    """(일간, 월지) 조합의 조후 1순위 오행을 반환한다."""
+    return JOHU_YONGSIN_TABLE[ilgan_idx][month_jiji_idx]
+
+
+def determine_season(month_jiji_idx: int) -> str:
+    """월지 인덱스로 계절을 판정한다."""
+    if month_jiji_idx in EXTREME_HOT_MONTHS:
+        return "염하(炎夏)"
+    if month_jiji_idx in EXTREME_COLD_MONTHS:
+        return "한동(寒冬)"
+    if month_jiji_idx in (2, 3):
+        return "초춘·중춘"
+    if month_jiji_idx == 4:
+        return "환절기(늦봄)"
+    if month_jiji_idx in (8, 9):
+        return "초추·중추"
+    if month_jiji_idx == 10:
+        return "환절기(늦가을)"
+    return "환절기"
+
+
 # ── 신강신약 + 용신 1차 판정 ───────────────────────────
 
 def calc_sinkang_yongsin(ilgan_idx: int,
@@ -622,7 +692,12 @@ def calc_sinkang_yongsin(ilgan_idx: int,
                           day_j: int,
                           hour_c: int | None = None,
                           hour_j: int | None = None) -> dict:
-    """신강/신약을 가중치 점수로 1차 판정하고 용신 후보를 산출한다.
+    """신강/신약을 가중치 점수로 1차 판정하고 용신을 산출한다.
+
+    용신 결정 규칙 (억부 + 조후 병합):
+    1. 염하·한동 극단 계절 출생 → 조후용신 최우선
+    2. 억부용신과 조후용신 오행이 일치 → 그대로 확정 (가장 명확)
+    3. 환절기/봄·가을 출생 → 억부용신 우선, 조후는 보조 용신
 
     가중치: 월지 본기 ×3 (월령), 일지 ×2, 년지/시지 ×1.5, 천간 ×1.
     일간 자체는 점수 산정에서 제외(일간 오행 분포에는 +1).
@@ -633,16 +708,50 @@ def calc_sinkang_yongsin(ilgan_idx: int,
     il_oh = CHEONGAN_OHAENG[ilgan_idx]
     il_oh_idx = OHAENG_INDEX[il_oh]
 
+    # 지지 리스트 구성 (충·삼합·방합 판정용)
+    jiji_list = [year_j, month_j, day_j]
+    if hour_j is not None:
+        jiji_list.append(hour_j)
+    jset = set(jiji_list)
+
+    # 1) 충 영향 판정: 충 당한 지지는 뿌리 50% 감쇄
+    chung_affected: set[int] = set()
+    chung_pairs: list[str] = []
+    for a, b in JIJI_CHUNG:
+        if a in jset and b in jset:
+            chung_affected.add(a)
+            chung_affected.add(b)
+            chung_pairs.append(f"{JIJI[a]}{JIJI[b]}충")
+
+    def jiji_weight(base: float, j: int) -> float:
+        return base * (0.5 if j in chung_affected else 1.0)
+
+    # 2) 삼합·방합 완성 판정: 완성 시 해당 오행 보너스
+    hap_bonus: dict[str, float] = {oh: 0.0 for oh in OHAENG_ORDER}
+    hap_labels: list[str] = []
+    for trio, oh in JIJI_SAMHAP:
+        if all(j in jset for j in trio):
+            hap_bonus[oh] += 2.0
+            hap_labels.append(
+                f"{''.join(JIJI[j] for j in trio)} 삼합({oh}) +2.0"
+            )
+    for trio, oh in JIJI_BANGHAP:
+        if all(j in jset for j in trio):
+            hap_bonus[oh] += 1.5
+            hap_labels.append(
+                f"{''.join(JIJI[j] for j in trio)} 방합({oh}) +1.5"
+            )
+
     items: list[tuple[str, float]] = [
         (CHEONGAN_OHAENG[year_c], 1.0),
         (CHEONGAN_OHAENG[month_c], 1.0),
-        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[year_j]], 1.5),
-        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[month_j]], 3.0),  # 월령
-        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[day_j]], 2.0),
+        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[year_j]], jiji_weight(1.5, year_j)),
+        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[month_j]], jiji_weight(3.0, month_j)),  # 월령
+        (CHEONGAN_OHAENG[JIJANGGAN_BONGI[day_j]], jiji_weight(2.0, day_j)),
     ]
     if hour_c is not None and hour_j is not None:
         items.append((CHEONGAN_OHAENG[hour_c], 1.0))
-        items.append((CHEONGAN_OHAENG[JIJANGGAN_BONGI[hour_j]], 1.5))
+        items.append((CHEONGAN_OHAENG[JIJANGGAN_BONGI[hour_j]], jiji_weight(1.5, hour_j)))
 
     pos = 0.0  # 일간을 돕는 점수 (비겁·인성)
     neg = 0.0  # 일간을 빼는 점수 (식상·재성·관성)
@@ -655,6 +764,17 @@ def calc_sinkang_yongsin(ilgan_idx: int,
         else:
             neg += w
     ohaeng_weighted[il_oh] += 1.0  # 일간 자체
+
+    # 삼합·방합 보너스 적용 (pos/neg 양쪽 합산에도 반영)
+    for oh, bonus in hap_bonus.items():
+        if bonus <= 0:
+            continue
+        ohaeng_weighted[oh] += bonus
+        d = (OHAENG_INDEX[oh] - il_oh_idx) % 5
+        if d in (0, 4):
+            pos += bonus
+        else:
+            neg += bonus
 
     total = pos + neg
     pos_pct = (pos / total * 100) if total > 0 else 50.0
@@ -676,7 +796,42 @@ def calc_sinkang_yongsin(ilgan_idx: int,
     for d in diffs:
         oh = OHAENG_ORDER[(il_oh_idx + d) % 5]
         cands.append((oh, ohaeng_weighted[oh]))
-    cands.sort(key=lambda x: x[1])  # 가장 부족한 것이 1순위 용신
+    cands.sort(key=lambda x: x[1])  # 가장 부족한 것이 1순위 억부용신
+
+    eokbu_yongsin = cands[0][0]
+    eokbu_candidates = [oh for oh, _ in cands]
+
+    # 조후용신 산출
+    johu_yongsin = get_johu_yongsin(ilgan_idx, month_j)
+    season = determine_season(month_j)
+
+    # 최종 용신 결정 (억부 + 조후 병합)
+    if month_j in EXTREME_HOT_MONTHS or month_j in EXTREME_COLD_MONTHS:
+        final_yongsin = johu_yongsin
+        yongsin_method = "조후 우선"
+        yongsin_reason = f"{season} 출생 — 기후 조절을 위해 조후용신({johu_yongsin}) 최우선 적용"
+    elif eokbu_yongsin == johu_yongsin:
+        final_yongsin = eokbu_yongsin
+        yongsin_method = "억부·조후 일치"
+        yongsin_reason = f"억부({eokbu_yongsin})와 조후({johu_yongsin}) 일치 — {final_yongsin} 확정"
+    else:
+        final_yongsin = eokbu_yongsin
+        yongsin_method = "억부 우선"
+        yongsin_reason = (
+            f"{season} 출생 — 억부용신({eokbu_yongsin}) 우선, "
+            f"조후용신({johu_yongsin})은 보조"
+        )
+
+    # 최종 용신 후보 순서: 최종 용신을 맨 앞에 두고 나머지는 억부 순위 유지
+    final_candidates = [final_yongsin] + [c for c in eokbu_candidates if c != final_yongsin]
+
+    # 뿌리 안정성 정보: 충 영향 받은 지지 라벨
+    jiji_positions = ["년지", "월지", "일지", "시지"]
+    chung_positions = [
+        jiji_positions[i]
+        for i, j in enumerate(jiji_list)
+        if j in chung_affected
+    ]
 
     return {
         "sinkang": sin,
@@ -684,9 +839,18 @@ def calc_sinkang_yongsin(ilgan_idx: int,
         "neg_score": round(neg, 1),
         "pos_ratio": round(pos_pct, 1),
         "direction": direction,
-        "yongsin": cands[0][0],
-        "yongsin_candidates": [oh for oh, _ in cands],
+        "season": season,
+        "yongsin": final_yongsin,
+        "yongsin_method": yongsin_method,
+        "yongsin_reason": yongsin_reason,
+        "eokbu_yongsin": eokbu_yongsin,
+        "eokbu_candidates": eokbu_candidates,
+        "johu_yongsin": johu_yongsin,
+        "yongsin_candidates": final_candidates,
         "ohaeng_weighted": {k: round(v, 1) for k, v in ohaeng_weighted.items()},
+        "chung_pairs": chung_pairs,
+        "chung_positions": chung_positions,
+        "hap_bonus_applied": hap_labels,
     }
 
 
@@ -827,7 +991,7 @@ def calculate_saju(
             "ohaeng_cheongan": CHEONGAN_OHAENG[c_idx],
             "ohaeng_jiji": JIJI_OHAENG[j_idx],
             "eumyang_cheongan": CHEONGAN_EUMYANG[c_idx],
-            "eumyang_jiji": CHEONGAN_EUMYANG[j_idx % 10] if j_idx < 10 else "양" if j_idx % 2 == 0 else "음",
+            "eumyang_jiji": JIJI_EUMYANG[j_idx],
         }
 
     result = {

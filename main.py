@@ -233,11 +233,22 @@ def build_user_prompt(saju: dict) -> str:
 
     # 신강신약 + 용신
     sk = saju["sinkang"]
+    chung_desc = (
+        f"{', '.join(sk['chung_pairs'])} → {', '.join(sk['chung_positions'])} 뿌리 50% 감쇄"
+        if sk['chung_pairs'] else "없음"
+    )
+    hap_desc = ", ".join(sk['hap_bonus_applied']) if sk['hap_bonus_applied'] else "없음"
     lines.extend([
         "[신강신약·용신 — 내부 추론용. 출력 용어 노출 금지]",
         f"- 판정: {sk['sinkang']} (도움 점수 {sk['pos_score']} / 설기 점수 {sk['neg_score']}, 도움 비율 {sk['pos_ratio']}%)",
         f"- 방향: {sk['direction']}",
-        f"- 용신(1순위): {sk['yongsin']} 오행",
+        f"- 계절: {sk['season']} (월령 기준)",
+        f"- 충 영향: {chung_desc}",
+        f"- 합 보너스: {hap_desc}",
+        f"- 억부용신: {sk['eokbu_yongsin']} (후보 {' > '.join(sk['eokbu_candidates'])})",
+        f"- 조후용신: {sk['johu_yongsin']} (기후 조절 관점)",
+        f"- 최종 용신: {sk['yongsin']} 오행 [{sk['yongsin_method']}]",
+        f"- 결정 근거: {sk['yongsin_reason']}",
         f"- 용신 후보 순위: {' > '.join(sk['yongsin_candidates'])}",
         f"- 가중 오행 분포: " + ", ".join(f"{k} {v}" for k, v in sk['ohaeng_weighted'].items()),
         "",
