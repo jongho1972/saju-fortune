@@ -91,34 +91,35 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="birth_region">출생 지역 <span class="hint">(진태양시 보정)</span></label>
+                        <select id="birth_region">
+                            <option value="seoul" selected>서울</option>
+                            <option value="incheon">인천</option>
+                            <option value="suwon">수원</option>
+                            <option value="chuncheon">춘천</option>
+                            <option value="gangneung">강릉</option>
+                            <option value="cheongju">청주</option>
+                            <option value="daejeon">대전</option>
+                            <option value="jeonju">전주</option>
+                            <option value="gwangju">광주</option>
+                            <option value="mokpo">목포</option>
+                            <option value="daegu">대구</option>
+                            <option value="andong">안동</option>
+                            <option value="pohang">포항</option>
+                            <option value="ulsan">울산</option>
+                            <option value="busan">부산</option>
+                            <option value="changwon">창원</option>
+                            <option value="jeju">제주</option>
+                            <option value="baekryeong">백령도</option>
+                            <option value="ulleung">울릉도</option>
+                        </select>
+                    </div>
+                </div>
+
                 <details class="advanced-settings">
                     <summary>고급 설정</summary>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="birth_region">출생 지역 <span class="hint">(진태양시 보정)</span></label>
-                            <select id="birth_region">
-                                <option value="seoul" selected>서울</option>
-                                <option value="incheon">인천</option>
-                                <option value="suwon">수원</option>
-                                <option value="chuncheon">춘천</option>
-                                <option value="gangneung">강릉</option>
-                                <option value="cheongju">청주</option>
-                                <option value="daejeon">대전</option>
-                                <option value="jeonju">전주</option>
-                                <option value="gwangju">광주</option>
-                                <option value="mokpo">목포</option>
-                                <option value="daegu">대구</option>
-                                <option value="andong">안동</option>
-                                <option value="pohang">포항</option>
-                                <option value="ulsan">울산</option>
-                                <option value="busan">부산</option>
-                                <option value="changwon">창원</option>
-                                <option value="jeju">제주</option>
-                                <option value="baekryeong">백령도</option>
-                                <option value="ulleung">울릉도</option>
-                            </select>
-                        </div>
-                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>23시 출생자 처리 <span class="hint">(자시 학파 선택)</span></label>
@@ -134,7 +135,7 @@
                             </div>
                         </div>
                     </div>
-                    <p class="advanced-note">한국 출생자에게는 진태양시 보정이 자동 적용됩니다. 출생 지역을 선택하면 해당 지역 경도로 정확히 보정됩니다. (서울 기준 약 -32분, 부산 기준 약 -24분)</p>
+                    <p class="advanced-note">선택한 출생 지역 경도로 진태양시가 자동 보정됩니다. (서울 기준 약 -32분, 부산 기준 약 -24분)</p>
                 </details>
 
                 <button type="submit" id="submit-btn">
