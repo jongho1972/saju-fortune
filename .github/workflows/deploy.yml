@@ -37,7 +37,7 @@ jobs:
       - name: Healthcheck
         run: |
           for i in {1..6}; do
-            if curl -fsS https://fortune.j-hawk.kr/api/deploy-time; then
+            if curl -fsS https://fortune.jhawk.kr/api/deploy-time; then
               echo "OK"; exit 0
             fi
             sleep 10

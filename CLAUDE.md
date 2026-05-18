@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **프론트엔드**: 정적 HTML/CSS/JS (static/ 디렉토리)
 - **AI 해석**: Anthropic Claude API (SSE 스트리밍, 완료 후 한 번에 표시)
 - **사주 계산**: 자체 구현 + korean-lunar-calendar (음양력 변환)
-- **배포**: Render (`https://saju-fortune.onrender.com`)
+- **배포**: j-hawk VPS (`https://fortune.jhawk.kr` · Docker Compose + Caddy)
 
 ## 개발 명령어
 
@@ -80,8 +80,13 @@ SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크
 
 ## 환경변수
 
-- `ANTHROPIC_API_KEY` — Claude API 키 (로컬: `.env` 파일, 배포: Render 대시보드)
+- `ANTHROPIC_API_KEY` — Claude API 키 (로컬: `.env` 파일, 배포: VPS `/opt/j-hawk/deploy/.env.fortune`)
 
 ## 배포
 
-Render 배포. `render.yaml` 참조. GitHub `jongho1972/saju-fortune` 저장소와 연동되어 push 시 자동 배포.
+- **플랫폼**: j-hawk VPS (Hetzner CAX11 ARM · Docker Compose + Caddy)
+- **저장소**: GitHub `jongho1972/saju-fortune`
+- **서비스 URL**: https://fortune.jhawk.kr
+- GitHub `main` 푸시 시 `deploy.yml`이 VPS SSH → `git reset --hard` → `docker compose build/up fortune` → 헬스체크
+- `render.yaml`은 (deprecated) 구 Render 배포 잔재, VPS 전환 후 미사용
+- 공통 인프라·롤백·트러블슈팅: 워크스페이스 루트 `deploy/README.md` 또는 `vps-deploy` 스킬
