@@ -602,6 +602,96 @@ header h1 {
     50% { opacity: 0; }
 }
 
+/* ── 결과 공유 / PDF 저장 ────────────────────── */
+#action-card {
+    padding: 18px 20px;
+}
+
+.action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.action-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: inherit;
+}
+
+.action-btn:hover:not(:disabled) {
+    background: var(--accent-dark);
+}
+
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.action-btn.secondary {
+    background: #fff;
+    color: var(--accent-dark);
+    border: 1.5px solid var(--saju-accent);
+}
+
+.action-btn.secondary:hover:not(:disabled) {
+    background: rgba(0, 122, 255, 0.06);
+}
+
+.action-helper {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin: 12px 0 0;
+}
+
+.action-tip {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    margin: 6px 0 0;
+}
+
+/* ── 토스트 ──────────────────────────────────── */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 32px;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(28, 28, 30, 0.92);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: all 0.25s;
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* 화면에선 숨김, 인쇄 시에만 표시 */
+.print-only {
+    display: none;
+}
+
 /* ── 푸터 ────────────────────────────────────── */
 footer {
     text-align: center;
@@ -700,4 +790,126 @@ footer .deploy-date {
     color: var(--text-muted);
     font-size: 0.85rem;
     font-style: italic;
+}
+
+/* ── @media print: 인쇄·PDF 저장 전용 ────────── */
+@media print {
+    /* 화면 전용 요소 모두 숨김 */
+    header, footer, #input-section, #loading-section,
+    #action-card, #followup-card, #toast {
+        display: none !important;
+    }
+
+    body {
+        background: #fff !important;
+        color: #000 !important;
+        font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        line-height: 1.6;
+        margin: 0 !important;
+    }
+
+    .container, #result-section {
+        max-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        margin: 0 0 6mm 0 !important;
+        overflow: visible !important;
+    }
+
+    .card h2 {
+        border-left: none !important;
+        border-bottom: 2px solid #b8860b !important;
+        font-size: 14pt;
+        padding: 0 0 6px 0;
+        margin-bottom: 12px;
+        background: #fff !important;
+    }
+
+    /* 인쇄 시 색상 강제 출력 */
+    .saju-cell .ohaeng-badge,
+    .ohaeng-bar-fill,
+    .saju-cell.header, .saju-cell.row-label,
+    .ohaeng-bar-track {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* 사주 표·오행 차트 페이지 분리 방지 */
+    #saju-table-card, .saju-grid, .ohaeng-chart {
+        page-break-inside: avoid;
+    }
+
+    #interpretation {
+        padding: 0 !important;
+        color: #000;
+    }
+
+    #interpretation h2 {
+        page-break-after: avoid;
+        color: #8b6508 !important;
+        border-bottom: 1px solid #ddd !important;
+        font-size: 13pt;
+        margin-top: 14pt;
+        margin-bottom: 6pt;
+    }
+
+    #interpretation p,
+    #interpretation li {
+        font-size: 10.5pt;
+        page-break-inside: avoid;
+    }
+
+    /* 표지 페이지 */
+    .print-only.print-cover {
+        display: block !important;
+        page-break-after: always;
+        break-after: page;
+        padding: 20mm 4mm 0;
+    }
+
+    .print-cover h1 {
+        font-size: 22pt;
+        text-align: center;
+        margin-bottom: 8mm;
+    }
+
+    .print-cover .print-date {
+        text-align: center;
+        color: #555;
+        font-size: 10pt;
+        margin-bottom: 12mm;
+    }
+
+    .print-cover hr {
+        border: none;
+        border-top: 1px solid #b8860b;
+        margin: 8mm 0;
+    }
+
+    .print-cover h2 {
+        font-size: 13pt;
+        color: #8b6508;
+        border: none !important;
+        margin: 4mm 0;
+    }
+
+    .print-cover p, .print-cover li {
+        font-size: 10.5pt;
+        margin-bottom: 3mm;
+    }
+
+    .print-cover ul {
+        padding-left: 6mm;
+    }
+
+    @page {
+        size: A4;
+        margin: 18mm 14mm;
+    }
 }

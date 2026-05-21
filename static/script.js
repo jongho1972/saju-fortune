@@ -4,8 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initSelects();
     initCalendarToggle();
     document.getElementById('saju-form').addEventListener('submit', handleSubmit);
+    document.getElementById('share-btn').addEventListener('click', shareResult);
+    document.getElementById('download-btn').addEventListener('click', downloadPDF);
     loadDeployTime();
 });
+
+// 공유 텍스트 구성에 쓰는 마지막 계산 결과
+let lastSaju = null;
 
 function loadDeployTime() {
     fetch('/api/deploy-time')
@@ -105,6 +110,12 @@ async function handleSubmit(e) {
     const submitBtn = document.getElementById('submit-btn');
     submitBtn.disabled = true;
 
+    // 이전 결과의 공유/저장 버튼 비활성화
+    document.getElementById('share-btn').disabled = true;
+    document.getElementById('download-btn').disabled = true;
+    const actionHelper = document.getElementById('action-helper');
+    if (actionHelper) actionHelper.style.display = '';
+
     document.getElementById('input-section').style.display = 'none';
     document.getElementById('loading-section').style.display = 'block';
     document.getElementById('result-section').style.display = 'none';
@@ -163,6 +174,7 @@ async function handleSubmit(e) {
                     const data = JSON.parse(jsonStr);
                     if (data.type === 'saju_data') {
                         // 사주 표를 즉시 표시
+                        lastSaju = data.data;
                         document.getElementById('loading-section').style.display = 'none';
                         document.getElementById('result-section').style.display = 'block';
                         renderSajuTable(data.data);
@@ -192,6 +204,11 @@ async function handleSubmit(e) {
             chatHistory = [];
             document.getElementById('followup-card').style.display = 'block';
             document.getElementById('followup-chat').innerHTML = '';
+            // 공유 / PDF 저장 버튼 활성화
+            document.getElementById('share-btn').disabled = false;
+            document.getElementById('download-btn').disabled = false;
+            const helper = document.getElementById('action-helper');
+            if (helper) helper.style.display = 'none';
         } else {
             interpEl.innerHTML = '<p>해석 결과를 불러오지 못했습니다.</p>';
         }
@@ -401,4 +418,121 @@ function renderOhaengChart(ohaeng, total) {
 
     html += '</div>';
     chartEl.innerHTML = html;
+}
+
+// ── 공유 ────────────────────────────────────────────
+// 사주 계산 결과(전역 lastSaju)를 읽기 좋은 줄글로 직렬화
+function sajuToText(saju) {
+    if (!saju) return '';
+    const lines = [];
+    lines.push(`${saju.name}님 (${saju.gender}) · ${saju.birth_date} · ${saju.ddi}띠`);
+
+    const pillars = [];
+    if (saju.has_hour) pillars.push(['시주', saju.hour_pillar]);
+    pillars.push(['일주', saju.day_pillar]);
+    pillars.push(['월주', saju.month_pillar]);
+    pillars.push(['년주', saju.year_pillar]);
+    lines.push('');
+    lines.push('[사주팔자]');
+    pillars.forEach(([label, d]) => {
+        lines.push(`· ${label} — 천간 ${d.cheongan_hanja}(${d.cheongan}·${d.ohaeng_cheongan}) / 지지 ${d.jiji_hanja}(${d.jiji}·${d.ohaeng_jiji})`);
+    });
+
+    if (saju.ohaeng) {
+        const order = ['목', '화', '토', '금', '수'];
+        const oh = order.map(o => `${o} ${saju.ohaeng[o]}`).join(' / ');
+        lines.push(`· 오행 분포 — ${oh}`);
+    }
+    return lines.join('\n');
+}
+
+// 해석 전문을 읽기 좋은 plain text로 직렬화
+function interpretationToText(root) {
+    const lines = [];
+    for (const el of root.children) {
+        const tag = el.tagName;
+        if (/^H[1-6]$/.test(tag)) {
+            lines.push(`\n■ ${el.textContent.trim()}`);
+        } else if (tag === 'UL' || tag === 'OL') {
+            el.querySelectorAll(':scope > li').forEach(li =>
+                lines.push(`· ${li.textContent.trim().replace(/\s+/g, ' ')}`));
+        } else if (tag === 'BLOCKQUOTE') {
+            lines.push(`“${el.textContent.trim().replace(/\s+/g, ' ')}”`);
+        } else if (tag === 'HR') {
+            lines.push('──────────');
+        } else {
+            const t = el.textContent.trim().replace(/\s+/g, ' ');
+            if (t) lines.push(t);
+        }
+    }
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+async function shareResult() {
+    const interp = document.getElementById('interpretation');
+    // 해석 결과는 서버에 저장되지 않으므로 링크가 아닌 '내용'을 공유한다.
+    const sajuText = sajuToText(lastSaju);
+    const body = (interp ? interpretationToText(interp) : '') || '내 사주를 AI로 봤어요';
+
+    const header = '🔮 Claude가 알려주는 사주팔자 — AI 사주 해석 결과';
+    const footer = `\n\n──────────\n직접 보기: ${window.location.origin}/`;
+    const shareText = `${header}\n\n${sajuText}\n\n[AI 사주 해석]\n${body}${footer}`;
+
+    // url 필드를 넣으면 일부 앱이 링크만 공유하므로 text만 전달
+    const shareData = { title: 'Claude가 알려주는 사주팔자', text: shareText };
+
+    if (navigator.share) {
+        try {
+            await navigator.share(shareData);
+            return;
+        } catch (err) {
+            if (err.name === 'AbortError') return;
+        }
+    }
+    try {
+        await navigator.clipboard.writeText(shareText);
+        showToast('해석 결과가 복사되었습니다');
+    } catch (err) {
+        showToast('공유를 지원하지 않는 브라우저입니다');
+    }
+}
+
+// ── 토스트 ──────────────────────────────────────────
+function showToast(message, duration = 2400) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.className = 'toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+// ── PDF 저장 / 인쇄 (window.print + @media print) ─────────────
+function downloadPDF() {
+    const interpretation = document.getElementById('interpretation');
+    const contentLen = (interpretation?.innerText || '').trim().length;
+    if (contentLen < 100) {
+        alert('저장할 해석 결과가 없습니다. 사주 분석을 먼저 진행해주세요.');
+        return;
+    }
+    const dateEl = document.getElementById('print-date');
+    if (dateEl) {
+        dateEl.textContent = '생성일: ' + new Date().toLocaleDateString('ko-KR', {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+    }
+    const today = new Date().toISOString().split('T')[0];
+    const name = lastSaju?.name ? `${lastSaju.name}_` : '';
+    const originalTitle = document.title;
+    document.title = `사주해석_${name}${today}`;
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => { document.title = originalTitle; }, 500);
+    }, 100);
 }

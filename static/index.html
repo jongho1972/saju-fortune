@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claude가 알려주는 사주팔자</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?v=20260521">
 </head>
 <body>
     <header>
@@ -157,6 +157,20 @@
 
         <!-- 결과 -->
         <section id="result-section" style="display:none;">
+            <!-- 인쇄 전용 표지 (화면에선 숨김, 인쇄 시 첫 페이지로 노출) -->
+            <section class="print-only print-cover" aria-hidden="true">
+                <h1>사주팔자 해석 보고서</h1>
+                <p class="print-date" id="print-date"></p>
+                <hr>
+                <h2>이용 안내</h2>
+                <p>이 보고서는 사주명리(四柱八字) 전통을 바탕으로 AI(Claude)가 생성한 <strong>재미·자기성찰 목적</strong>의 해석입니다. 정확성을 보장하지 않습니다.</p>
+                <ul>
+                    <li>의료·재정·관계 등 중요한 결정의 유일한 근거로 사용하지 마세요.</li>
+                    <li>본인의 판단과 노력을 우선해 주세요.</li>
+                    <li>사주는 타고난 기질의 경향성을 보는 참고 자료이며 정해진 운명이 아닙니다.</li>
+                </ul>
+            </section>
+
             <!-- 사주팔자 표 -->
             <div class="card" id="saju-table-card">
                 <h2>사주팔자</h2>
@@ -169,6 +183,20 @@
             <div class="card" id="interpretation-card">
                 <h2>AI 사주 해석</h2>
                 <div id="interpretation"></div>
+            </div>
+
+            <!-- 결과 공유 / PDF 저장 -->
+            <div class="card" id="action-card">
+                <div class="action-row">
+                    <button id="share-btn" class="action-btn secondary" disabled>
+                        <span aria-hidden="true">📤</span> 결과 공유하기
+                    </button>
+                    <button id="download-btn" class="action-btn" disabled>
+                        <span aria-hidden="true">🖨</span> PDF로 저장
+                    </button>
+                </div>
+                <p class="action-helper" id="action-helper">해석이 끝나면 공유·저장할 수 있습니다.</p>
+                <p class="action-tip">PDF로 저장 시 인쇄 화면에서 대상을 <strong>‘PDF로 저장’</strong>으로 선택하세요. (iPhone은 공유 → ‘프린트’)</p>
             </div>
 
             <!-- 추가 질문 -->
@@ -190,6 +218,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.4/marked.min.js"></script>
-    <script src="/script.js"></script>
+    <script src="/script.js?v=20260521"></script>
 </body>
 </html>
