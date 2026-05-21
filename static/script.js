@@ -135,27 +135,10 @@ async function handleSubmit(e) {
         const decoder = new TextDecoder();
         let buffer = '';
         let fullText = '';
+        let lastRender = 0;
         const interpEl = document.getElementById('interpretation');
+        const streamingBanner = document.getElementById('streaming-banner');
         interpEl.innerHTML = '';
-
-        // AI 해석 로딩 표시 (진행 바)
-        const interpCard = document.getElementById('interpretation-card');
-        interpCard.querySelector('h2').textContent = 'AI 사주 해석';
-        interpEl.innerHTML = `
-            <div class="ai-progress">
-                <div class="ai-progress-bar"><div class="ai-progress-fill" id="ai-progress-fill"></div></div>
-                <p class="ai-progress-text" id="ai-progress-text">당신의 운명을 확인하고 있습니다...</p>
-            </div>`;
-        const EXPECTED_LENGTH = 3000;
-        const progressFill = document.getElementById('ai-progress-fill');
-        const progressText = document.getElementById('ai-progress-text');
-        const progressMessages = [
-            '사주팔자를 읽고 있습니다...',
-            '오행의 균형을 살펴보고 있습니다...',
-            '운세를 분석하고 있습니다...',
-            '월별 운세를 작성하고 있습니다...',
-            '거의 다 되었습니다...',
-        ];
 
         while (true) {
             const { done, value } = await reader.read();
@@ -173,20 +156,22 @@ async function handleSubmit(e) {
                 try {
                     const data = JSON.parse(jsonStr);
                     if (data.type === 'saju_data') {
-                        // 사주 표를 즉시 표시
+                        // 사주 표를 즉시 표시하고 AI 해석 스트리밍 시작 표시
                         lastSaju = data.data;
                         document.getElementById('loading-section').style.display = 'none';
                         document.getElementById('result-section').style.display = 'block';
                         renderSajuTable(data.data);
+                        streamingBanner.style.display = 'flex';
+                        interpEl.innerHTML = '';
+                        interpEl.classList.add('streaming');
                         document.getElementById('saju-table-card').scrollIntoView({ behavior: 'smooth' });
                     } else if (data.type === 'text') {
                         fullText += data.content;
-                        // 진행 바 업데이트
-                        if (progressFill) {
-                            const pct = Math.min(95, (fullText.length / EXPECTED_LENGTH) * 100);
-                            progressFill.style.width = pct + '%';
-                            const msgIdx = Math.min(Math.floor(pct / 20), progressMessages.length - 1);
-                            progressText.textContent = progressMessages[msgIdx];
+                        // 출력되는 대로 실시간 렌더링 (200ms throttle)
+                        const now = Date.now();
+                        if (now - lastRender > 200) {
+                            interpEl.innerHTML = marked.parse(fullText);
+                            lastRender = now;
                         }
                     }
                 } catch (parseErr) {
@@ -195,8 +180,9 @@ async function handleSubmit(e) {
             }
         }
 
-        // AI 해석 완료 → 한 번에 표시
-        document.getElementById('interpretation-card').querySelector('h2').textContent = 'AI 사주 해석';
+        // AI 해석 완료 → 최종 렌더
+        streamingBanner.style.display = 'none';
+        interpEl.classList.remove('streaming');
         if (fullText) {
             interpEl.innerHTML = marked.parse(fullText);
             // 추가 질문 영역 표시
@@ -214,6 +200,8 @@ async function handleSubmit(e) {
         }
 
     } catch (err) {
+        document.getElementById('streaming-banner').style.display = 'none';
+        document.getElementById('result-section').style.display = 'none';
         document.getElementById('loading-section').style.display = 'none';
         document.getElementById('input-section').style.display = 'block';
         alert('분석 중 오류가 발생했습니다: ' + err.message);

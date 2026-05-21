@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claude가 알려주는 사주팔자</title>
-    <link rel="stylesheet" href="/style.css?v=20260521">
+    <link rel="stylesheet" href="/style.css?v=20260521b">
 </head>
 <body>
     <header>
@@ -182,6 +182,10 @@
             <!-- AI 해석 -->
             <div class="card" id="interpretation-card">
                 <h2>AI 사주 해석</h2>
+                <div class="streaming-banner" id="streaming-banner" style="display:none;" aria-live="polite">
+                    <span class="streaming-dot" aria-hidden="true"></span>
+                    <span class="streaming-text">AI가 사주를 풀이하고 있어요…</span>
+                </div>
                 <div id="interpretation"></div>
             </div>
 
@@ -218,6 +222,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.4/marked.min.js"></script>
-    <script src="/script.js?v=20260521"></script>
+    <script src="/script.js?v=20260521b"></script>
 </body>
 </html>

@@ -276,35 +276,48 @@ header h1 {
     font-weight: 400;
 }
 
+/* ── AI 해석 실시간 스트리밍 표시 ────────────── */
+.streaming-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(90deg, rgba(251, 196, 0, 0.14) 0%, rgba(251, 196, 0, 0.04) 100%);
+    border-bottom: 1px solid rgba(251, 196, 0, 0.45);
+    color: #8a6d00;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 10px 20px;
+}
+
+.streaming-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--saju-accent);
+    box-shadow: 0 0 0 0 rgba(251, 196, 0, 0.6);
+    animation: streamPulse 1.2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+@keyframes streamPulse {
+    0% { box-shadow: 0 0 0 0 rgba(251, 196, 0, 0.55); transform: scale(1); }
+    70% { box-shadow: 0 0 0 8px rgba(251, 196, 0, 0); transform: scale(1.15); }
+    100% { box-shadow: 0 0 0 0 rgba(251, 196, 0, 0); transform: scale(1); }
+}
+
+#interpretation.streaming::after {
+    content: '▍';
+    color: var(--saju-accent);
+    animation: caretBlink 0.9s steps(2) infinite;
+    margin-left: 2px;
+    font-weight: bold;
+}
+
+@keyframes caretBlink {
+    50% { opacity: 0; }
+}
+
 /* ── 사주 표 ─────────────────────────────────── */
-/* ── AI 진행 바 ──────────────────────────────── */
-.ai-progress {
-    padding: 24px 0;
-    text-align: center;
-}
-
-.ai-progress-bar {
-    width: 100%;
-    height: 12px;
-    background: var(--bg);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 16px;
-}
-
-.ai-progress-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--accent);
-    border-radius: 3px;
-    transition: width 0.3s ease;
-}
-
-.ai-progress-text {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
 #saju-table-card h2 {
     border-left: 4px solid var(--saju-accent);
 }
@@ -796,7 +809,7 @@ footer .deploy-date {
 @media print {
     /* 화면 전용 요소 모두 숨김 */
     header, footer, #input-section, #loading-section,
-    #action-card, #followup-card, #toast {
+    #action-card, #followup-card, #toast, .streaming-banner {
         display: none !important;
     }
 

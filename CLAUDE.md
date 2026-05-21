@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **백엔드**: FastAPI (Python)
 - **프론트엔드**: 정적 HTML/CSS/JS (static/ 디렉토리)
-- **AI 해석**: Anthropic Claude API (SSE 스트리밍, 완료 후 한 번에 표시)
+- **AI 해석**: Anthropic Claude API (SSE 스트리밍, 출력되는 대로 실시간 표시)
 - **사주 계산**: 자체 구현 + korean-lunar-calendar (음양력 변환)
 - **배포**: j-hawk VPS (`https://fortune.jhawk.kr` · Docker Compose + Caddy)
 
@@ -44,12 +44,17 @@ uvicorn main:app --reload
 
 ```
 프론트엔드 폼 → POST /api/saju → saju_calculator.calculate_saju()
-  → Claude API 스트리밍 → SSE → 프론트엔드 (완료 후 한 번에 렌더링)
+  → Claude API 스트리밍 → SSE → 프론트엔드 (출력되는 대로 실시간 렌더링)
 ```
 
 SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크), `done` (완료)
 
-프론트엔드는 스트리밍 중에는 로딩 화면만 표시하고, 완료 시 사주표+AI 해석을 한 번에 표시한다.
+프론트엔드는 `saju_data` 수신 즉시 사주표를 표시하고, `text` 청크가 들어오는 대로 마크다운을 실시간 렌더링한다(200ms throttle). 해석 중에는 스트리밍 배너(`#streaming-banner`)와 깜빡이는 커서(`#interpretation.streaming`)를 표시하고, 완료 시 배너를 숨기며 공유·PDF 저장 버튼을 활성화한다.
+
+### 결과 공유 / PDF 저장 (손금풀이와 동일 방식)
+
+- **공유**: `navigator.share`(모바일 네이티브) → 미지원 시 `navigator.clipboard` 복사 폴백. 결과를 서버에 저장하지 않으므로 링크가 아닌 내용(사주표+오행+AI 해석)을 텍스트로 직렬화해 공유한다.
+- **PDF 저장**: `window.print()` + `@media print`. 인쇄 시 표지(`.print-cover`)+사주표+해석만 출력하고 입력폼·배너·액션·추가질문·헤더·푸터는 숨긴다. 오행 색상은 `print-color-adjust: exact`로 유지.
 
 ### AI 해석 항목 (main.py SYSTEM_PROMPT)
 
