@@ -364,7 +364,7 @@ async def analyze_saju(request: Request):
 
         # Claude API 스트리밍 해석
         async with client.messages.stream(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-5",
             max_tokens=6000,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
@@ -409,7 +409,7 @@ async def followup_question(request: Request):
 
     async def event_stream():
         async with client.messages.stream(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-5",
             max_tokens=1000,
             system=FOLLOWUP_SYSTEM,
             messages=messages,
