@@ -78,6 +78,7 @@ SYSTEM_PROMPT = """당신은 사주를 아주 쉽게 설명해주는 친절한 �
 8. 각 섹션은 충분히 상세하게 작성합니다 (각 섹션 최소 3-4문장)
 9. 다정한 선생님이 이야기해주듯 편안한 존댓말을 사용합니다
 10. 개인화는 유지하되 표현은 쉽게 — 사람마다 해석이 달라야 하지만, 그 차이를 일상 언어로 풀어 설명합니다.
+11. **날짜·간지·수치를 절대 임의로 계산하거나 추정하지 않습니다.** 음력 날짜, 절기, 만 나이, 특정 연도의 세운·월운·대운 간지, 오행 개수 등 사실적 데이터는 반드시 아래 제공된 [기본 정보]/[사주팔자]/[대운]/[올해 세운]/[향후 12개월 월운] 등의 값만 그대로 사용하세요. 프롬프트에 없는 날짜·수치·간지는 스스로 계산하지 말고, 필요하면 "제공된 정보에는 없지만 일반적으로는~" 식으로 사주 지식(일반론)임을 분명히 밝히거나 언급 자체를 생략하세요.
 
 응답 형식 (반드시 마크다운으로):
 
@@ -137,8 +138,12 @@ SYSTEM_PROMPT = """당신은 사주를 아주 쉽게 설명해주는 친절한 �
 3. "조심하세요"로 끝나는 막연한 경고가 있다면 **구체적 행동 조언**으로 바꾸세요."""
 
 
-def build_user_prompt(saju: dict) -> str:
-    """사주 계산 결과를 Claude API 프롬프트로 변환한다."""
+def build_facts_block(saju: dict) -> str:
+    """사주 계산 결과(원본 데이터)만 텍스트 블록으로 변환한다.
+
+    Claude가 날짜·간지·수치를 임의로 추정하지 않도록, 메인 분석과
+    추가 질문(follow-up) 양쪽에서 공통으로 이 블록을 근거 데이터로 전달한다.
+    """
     yp = saju["year_pillar"]
     mp = saju["month_pillar"]
     dp = saju["day_pillar"]
@@ -152,8 +157,16 @@ def build_user_prompt(saju: dict) -> str:
         f"[기본 정보]",
         f"- 이름: {saju['name']}",
         f"- 성별: {saju['gender']}",
-        f"- 생년월일: {saju['birth_date']}",
+        f"- 생년월일(양력): {saju['birth_date']}",
     ]
+
+    ld = saju.get("lunar_date")
+    if ld:
+        intercal = " (윤달)" if ld["is_intercalation"] else ""
+        lines.append(
+            f"- 생년월일(음력, 정확한 값이므로 이 숫자만 사용): "
+            f"{ld['year']}년 {ld['month']}월 {ld['day']}일{intercal}"
+        )
 
     if saju["birth_hour"] is not None:
         lines.append(f"- 태어난 시각: {saju['birth_hour']}시")
@@ -303,10 +316,13 @@ def build_user_prompt(saju: dict) -> str:
             f", 지지십신: {w['sipsin_jiji']}"
             f" (오행: {w['ohaeng_cheongan']}·{w['ohaeng_jiji']})"
         )
-    lines.append("")
-    lines.append("위 정보를 바탕으로 각 섹션별로 상세하고 전문적인 분석을 해주세요.")
-
     return "\n".join(lines)
+
+
+def build_user_prompt(saju: dict) -> str:
+    """사주 계산 결과를 메인 분석용 Claude API 프롬프트로 변환한다."""
+    facts = build_facts_block(saju)
+    return facts + "\n\n위 정보를 바탕으로 각 섹션별로 상세하고 전문적인 분석을 해주세요."
 
 
 @app.post("/api/saju")
@@ -388,7 +404,12 @@ async def analyze_saju(request: Request):
 FOLLOWUP_SYSTEM = """당신은 사주를 아주 쉽게 설명해주는 친절한 선생님입니다.
 사용자의 사주 분석 결과를 바탕으로 추가 질문에 답변해주세요.
 초등학생도 이해할 수 있는 쉬운 말로 답변하세요. 전문 용어는 사용하지 마세요.
-간결하고 핵심적으로 답변하되, 친절한 톤을 유지하세요."""
+간결하고 핵심적으로 답변하되, 친절한 톤을 유지하세요.
+
+**날짜·간지·수치를 절대 임의로 계산하거나 추정하지 않습니다.** 음력 날짜, 절기, 만 나이,
+특정 연도의 세운·월운·대운 간지 등은 반드시 아래 [사주 원본 데이터]에 있는 값만 사용하세요.
+질문에 답하는 데 필요한 값이 원본 데이터에 없다면 스스로 계산하지 말고, 일반적인 사주 지식
+(일반론)임을 밝히거나 "그 부분은 정확히 계산된 값이 없어 말씀드리기 어려워요"라고 솔직히 답하세요."""
 
 
 @app.post("/api/followup")
@@ -397,9 +418,17 @@ async def followup_question(request: Request):
     data = await request.json()
     question = data.get("question", "")
     saju_context = data.get("saju_context", "")
+    saju_data = data.get("saju_data")
     chat_history = data.get("chat_history", [])
 
-    messages = [{"role": "user", "content": f"[사주 분석 맥락]\n{saju_context}"}]
+    context = f"[이전 AI 해석 요약]\n{saju_context}"
+    if saju_data:
+        try:
+            context += f"\n\n[사주 원본 데이터 — 날짜·간지·수치는 반드시 이 값만 사용]\n{build_facts_block(saju_data)}"
+        except (KeyError, TypeError):
+            pass
+
+    messages = [{"role": "user", "content": context}]
     messages.append({"role": "assistant", "content": "네, 이 사주에 대해 추가로 궁금한 점이 있으시면 편하게 물어보세요!"})
 
     for msg in chat_history:

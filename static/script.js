@@ -243,6 +243,7 @@ async function sendFollowup() {
             body: JSON.stringify({
                 question,
                 saju_context: sajuContext,
+                saju_data: lastSaju,
                 chat_history: chatHistory,
             }),
         });

@@ -213,6 +213,18 @@ def lunar_to_solar(year: int, month: int, day: int, is_intercalation: bool = Fal
     return date(int(parts[0]), int(parts[1]), int(parts[2]))
 
 
+def solar_to_lunar(solar_date: date) -> dict:
+    """양력 날짜를 음력으로 변환한다."""
+    cal = KoreanLunarCalendar()
+    cal.setSolarDate(solar_date.year, solar_date.month, solar_date.day)
+    return {
+        "year": cal.lunarYear,
+        "month": cal.lunarMonth,
+        "day": cal.lunarDay,
+        "is_intercalation": cal.isIntercalation,
+    }
+
+
 # ── 년주 계산 ──────────────────────────────────────────
 
 def calc_year_pillar(solar_date: date) -> tuple[int, int]:
@@ -935,6 +947,8 @@ def calculate_saju(
     else:
         solar_date = date(year, month, day)
 
+    lunar_date = solar_to_lunar(solar_date)
+
     has_hour = hour is not None
 
     # 1-1. 진태양시 보정 (시주가 있는 경우만)
@@ -1030,6 +1044,7 @@ def calculate_saju(
         "name": name,
         "gender": "남" if gender == "male" else "여",
         "birth_date": solar_date.isoformat(),
+        "lunar_date": lunar_date,
         "birth_hour": hour,
         "birth_minute": minute,
         "solar_time_offset": solar_time_offset,
