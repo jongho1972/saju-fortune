@@ -81,7 +81,7 @@ SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크
 
 ### 디자인
 
-복권번호생성기(`lottery-number-generator.onrender.com`)와 동일한 톤앤매너. 밝은 배경(`#f5f5f7`), 흰색 카드, 파란 액센트 버튼(`#007aff`), 노란 왼쪽 보더 카드 헤더.
+복권번호생성기(`lottery.jhawk.kr`)와 동일한 톤앤매너. 밝은 배경(`#f5f5f7`), 흰색 카드, 파란 액센트 버튼(`#007aff`), 노란 왼쪽 보더 카드 헤더.
 
 ## 환경변수
 
@@ -93,5 +93,4 @@ SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크
 - **저장소**: GitHub `jongho1972/saju-fortune`
 - **서비스 URL**: https://fortune.jhawk.kr
 - GitHub `main` 푸시 시 `deploy.yml`이 VPS SSH → `git reset --hard` → `docker compose build/up fortune` → 헬스체크
-- `render.yaml`은 (deprecated) 구 Render 배포 잔재, VPS 전환 후 미사용
 - 공통 인프라·롤백·트러블슈팅: 워크스페이스 루트 `deploy/README.md` 또는 `vps-deploy` 스킬

@@ -2,7 +2,7 @@
 
 사주명리학 기반 AI 운세 분석 서비스. 생년월일시를 입력하면 사주팔자를 계산하고, Claude AI가 초등학생도 이해할 수 있는 쉬운 말로 해석해줍니다.
 
-**배포 URL**: https://saju-fortune.onrender.com
+**배포 URL**: https://fortune.jhawk.kr
 
 ## 주요 기능
 
@@ -39,7 +39,6 @@ fortune/
 ├── saju_calculator.py   # 사주팔자 계산 엔진
 ├── solar_terms.py       # 절기 데이터 (1920~2050년)
 ├── requirements.txt
-├── render.yaml          # Render 배포 설정
 └── static/
     ├── index.html
     ├── style.css
