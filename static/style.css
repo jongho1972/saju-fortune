@@ -24,7 +24,7 @@
 }
 
 body {
-    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    font-family: Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.7;
@@ -826,7 +826,7 @@ footer .deploy-date {
     body {
         background: #fff !important;
         color: #000 !important;
-        font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        font-family: Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
         line-height: 1.6;
         margin: 0 !important;
     }
@@ -936,3 +936,6 @@ footer .deploy-date {
         margin: 18mm 14mm;
     }
 }
+
+/* 폼 요소도 본문 폰트(Pretendard)를 따르게 */
+button,input,select,textarea{font-family:inherit}
