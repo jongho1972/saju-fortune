@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **백엔드**: FastAPI (Python)
 - **프론트엔드**: 정적 HTML/CSS/JS (static/ 디렉토리)
-- **AI 해석**: Anthropic Claude API (SSE 스트리밍, 출력되는 대로 실시간 표시)
+- **AI 해석**: Anthropic Claude API `claude-sonnet-5-5` (SSE 스트리밍, 출력되는 대로 실시간 표시). `thinking: between_tools`(생각 끔 — 생각 토큰이 max_tokens를 잠식해 해석이 잘리던 문제 방지), effort `high`, 서버 측 거절 폴백(`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). 설정은 `main.py`의 `STREAM_OPTIONS` 한 곳
 - **사주 계산**: 자체 구현 + korean-lunar-calendar (음양력 변환)
 - **배포**: j-hawk VPS (`https://fortune.jhawk.kr` · Docker Compose + Caddy)
 
@@ -47,9 +47,16 @@ uvicorn main:app --reload
   → Claude API 스트리밍 → SSE → 프론트엔드 (출력되는 대로 실시간 렌더링)
 ```
 
-SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크), `done` (완료)
+SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크), `notice` (max_tokens로 잘림·거절 안내), `error` (API 오류, 사용자용 문구 — 원문은 서버 로그), `done` (완료). 공통 생성기는 `stream_claude()`이며 매 호출 토큰·캐시 사용량을 uvicorn 로그에 `claude stop=... cache_read=...`로 남긴다.
 
 프론트엔드는 `saju_data` 수신 즉시 사주표를 표시하고, `text` 청크가 들어오는 대로 마크다운을 실시간 렌더링한다(200ms throttle). 해석 중에는 스트리밍 배너(`#streaming-banner`)와 깜빡이는 커서(`#interpretation.streaming`)를 표시하고, 완료 시 배너를 숨기며 공유·PDF 저장 버튼을 활성화한다.
+
+### 보호 장치 (2026-11-11)
+
+- **입력 검증**: 연·월·일·시·분 범위 검사, 존재하지 않는 날짜(ValueError)는 400 + 한국어 안내(`{"error": ...}`). 프론트는 `readErrorMessage()`로 문구를 그대로 표시.
+- **호출 제한**: IP당 1시간 사주 10회·추가 질문 30회(`RATE_LIMITS`, 단일 프로세스 메모리). 초과 시 429.
+- **추가 질문 상한**: 질문 500자, 이전 해석 3만 자, 대화 이력 최근 20개·2만 자(`_clean_history`).
+- **프롬프트 캐싱**: 메인 시스템 프롬프트에 `cache_control`, 추가 질문은 고정 context 블록 + 자동 캐싱.
 
 ### 결과 공유 / PDF 저장 (손금풀이와 동일 방식)
 
@@ -81,10 +88,11 @@ SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크
 
 ### 디자인
 
-복권번호생성기(`lottery.jhawk.kr`)와 동일한 톤앤매너. 밝은 배경(`#f5f5f7`), 흰색 카드, 파란 액센트 버튼(`#007aff`), 노란 왼쪽 보더 카드 헤더.
+홈페이지(`jhawk.kr`)와 같은 **다크 고정 톤**(2026-11-11 전환). 배경 `#0b0c0e`, 카드 `#15171a`, 글자 `#f2f3f5`, 링크 `#3d9bff`·버튼 `#0a6fe0`, 노란 왼쪽 보더 카드 헤더 유지. 색은 `style.css` `:root` 토큰으로만 지정하고, `@media print`에서 같은 토큰을 밝은 값으로 재정의해 PDF는 흰 종이로 출력한다.
 
 ## 환경변수
 
+- 의존성은 `requirements.txt`에 버전 고정(2026-11-11). 올릴 때는 깨끗한 venv에서 확인 후 변경.
 - `ANTHROPIC_API_KEY` — Claude API 키 (로컬: `.env` 파일, 배포: VPS `/opt/j-hawk/deploy/.env.fortune`)
 
 ## 배포

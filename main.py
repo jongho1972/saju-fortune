@@ -6,26 +6,118 @@ GET  /          : 정적 파일 (프론트엔드)
 """
 
 import json
+import logging
 import os
+import time
+from collections import defaultdict, deque
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
+import anthropic
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from anthropic import AsyncAnthropic
 
 from saju_calculator import calculate_saju
 
 load_dotenv()
 
 app = FastAPI(title="사주팔자 조회")
+logger = logging.getLogger("uvicorn.error")  # uvicorn 로그 출력에 함께 남김
 
 # 서버 시작(배포) 시각 기록 (KST)
-from zoneinfo import ZoneInfo
 DEPLOY_TIME = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y년 %m월 %d일 %H:%M")
 
-client = AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+client = anthropic.AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+# 모델 설정: Sonnet 5.5는 thinking "disabled"를 거부하므로 between_tools(생각 없이 바로 답변)로 끈다.
+# 생각 토큰이 max_tokens를 잠식해 해석이 잘리던 문제(79a17cc)를 막기 위해 계속 끈 상태를 유지한다.
+# fallbacks="default": 안전 분류기가 거절하면 서버가 같은 요청을 대체 모델로 재시도한다.
+MODEL = "claude-sonnet-5-5"
+STREAM_OPTIONS = {
+    "model": MODEL,
+    "thinking": {"type": "between_tools"},
+    "output_config": {"effort": "high"},
+    "betas": ["server-side-fallback-2026-07-01"],
+    "fallbacks": "default",
+}
+
+# IP별 호출 제한 (단일 프로세스 메모리 기준, 1시간 슬라이딩 윈도우)
+RATE_LIMITS = {"saju": 10, "followup": 30}
+RATE_WINDOW_SEC = 60 * 60
+_hits: dict[tuple[str, str], deque] = defaultdict(deque)
+
+# 추가 질문 입력 상한
+MAX_QUESTION_CHARS = 500
+MAX_CONTEXT_CHARS = 30000
+MAX_HISTORY_MESSAGES = 20
+MAX_HISTORY_CHARS = 20000
+
+
+def rate_limited(request: Request, bucket: str) -> bool:
+    """허용 횟수를 넘었으면 True. 넘지 않았으면 이번 호출을 기록하고 False."""
+    ip = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    q = _hits[(bucket, ip)]
+    while q and now - q[0] > RATE_WINDOW_SEC:
+        q.popleft()
+    if not q:
+        del _hits[(bucket, ip)]  # 오래된 IP 키가 쌓이지 않게 비면 지운다
+        q = _hits[(bucket, ip)]
+    if len(q) >= RATE_LIMITS[bucket]:
+        return True
+    q.append(now)
+    return False
+
+
+def error_json(message: str, status: int) -> JSONResponse:
+    return JSONResponse({"error": message}, status_code=status)
+
+
+def sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def friendly_api_error(e: Exception) -> str:
+    """Claude API 오류를 사용자용 안내 문구로 바꾼다 (원문은 로그에만 남김)."""
+    if isinstance(e, anthropic.RateLimitError):
+        return "지금 이용자가 많아 해석이 지연되고 있어요. 1~2분 뒤 다시 시도해 주세요."
+    if isinstance(e, anthropic.APIConnectionError):
+        return "AI 서버와 연결이 끊겼어요. 잠시 뒤 다시 시도해 주세요."
+    if isinstance(e, anthropic.APIStatusError) and e.status_code >= 500:
+        return "AI 서버가 일시적으로 불안정해요. 잠시 뒤 다시 시도해 주세요."
+    return "해석 중 오류가 발생했어요. 잠시 뒤 다시 시도해 주세요."
+
+
+async def stream_claude(system, messages, max_tokens: int, cache_control=None):
+    """Claude 스트리밍 → SSE 이벤트(text / notice / error / done) 생성기."""
+    extra = {"cache_control": cache_control} if cache_control else {}
+    try:
+        async with client.beta.messages.stream(
+            max_tokens=max_tokens,
+            system=system,
+            messages=messages,
+            **STREAM_OPTIONS,
+            **extra,
+        ) as stream:
+            async for text in stream.text_stream:
+                yield sse({"type": "text", "content": text})
+            final = await stream.get_final_message()
+        u = final.usage
+        logger.info(
+            "claude stop=%s in=%s out=%s cache_read=%s cache_write=%s",
+            final.stop_reason, u.input_tokens, u.output_tokens,
+            u.cache_read_input_tokens, u.cache_creation_input_tokens,
+        )
+        if final.stop_reason == "max_tokens":
+            yield sse({"type": "notice", "message": "해석이 길어 마지막 부분이 잘렸어요. 궁금한 부분은 아래 추가 질문으로 물어봐 주세요."})
+        elif final.stop_reason == "refusal":
+            yield sse({"type": "notice", "message": "이 요청에는 AI가 답변하지 않았어요. 질문을 바꿔 다시 시도해 주세요."})
+        yield sse({"type": "done"})
+    except Exception as e:  # 스트림 도중 오류도 사용자에게 알린다
+        logger.exception("Claude 스트리밍 실패")
+        yield sse({"type": "error", "message": friendly_api_error(e)})
 
 
 @app.get("/api/deploy-time")
@@ -120,20 +212,21 @@ SYSTEM_PROMPT = """당신은 사주를 아주 쉽게 설명해주는 친절한 �
 - **부담이 되는 달(편관·상관·겁재 등 부담 기운)에는 구체적 리스크 + 대처법을 반드시 넣으세요.** 예: "계약서 꼼꼼히", "건강검진 추천", "충동 지출 주의", "말실수 조심"
 - 도움이 되는 달에도 한 줄 정도는 "다만 ~는 조심" 식의 경계를 넣어 균형을 잡으세요.
 - "4월은 새출발" 같은 달력 상식 금지.
-- 형식:
-- **2026년 4월**: 키워드 - 이 달의 기운 + 좋은 점 + **조심할 점과 대처법**
-- **2026년 5월**: 키워드 - 이 달의 기운 + 좋은 점 + **조심할 점과 대처법**
+- [향후 12개월 월운] 표의 첫 달부터 순서대로 12개월을 모두 쓰세요. 연·월은 표에 적힌 값을 그대로 씁니다.
+- 형식 (YYYY·M은 표의 실제 연·월로 바꿔 쓰기):
+- **YYYY년 M월**: 키워드 - 이 달의 기운 + 좋은 점 + **조심할 점과 대처법**
+- **YYYY년 M월**: 키워드 - 이 달의 기운 + 좋은 점 + **조심할 점과 대처법**
 ...12개월)
 
 ## 대운 흐름과 종합 조언
-(현재 대운 데이터를 내부 근거로.
-- **현재 대운의 성격**: "지금은 ○○한 시기예요"
-- **이 대운에서 조심해야 할 것**: 실제로 이 시기에 걸려 넘어지기 쉬운 함정 1~2가지
-- **이 대운을 잘 활용하는 법**: 이 기간 동안 반드시 해둬야 할 것 + 다음 대운 전환점을 어떻게 준비할지 실천 조언)
+(현재 대운 데이터를 내부 근거로. 이 섹션 제목 외 본문에서는 '대운'이라는 말을 쓰지 말고 "10년 단위 큰 흐름", "지금의 10년" 처럼 풀어 쓰세요.
+- **지금의 10년 흐름**: "지금은 ○○한 시기예요" (해당 기간 연도는 [대운] 데이터 값 그대로)
+- **이 10년 동안 조심할 것**: 실제로 이 시기에 걸려 넘어지기 쉬운 함정 1~2가지
+- **이 10년을 잘 활용하는 법**: 이 기간 동안 반드시 해둬야 할 것 + 다음 10년 흐름으로 넘어가는 전환점을 어떻게 준비할지 실천 조언)
 
 ---
 **최종 점검**:
-1. 응답을 작성한 뒤 위 금지어 목록의 단어가 단 하나라도 들어 있다면 [의미 변환표]대로 다시 풀어 쓰세요.
+1. 응답을 작성한 뒤 위 금지어 목록의 단어가 (정해진 섹션 제목을 빼고) 단 하나라도 들어 있다면 [의미 변환표]대로 다시 풀어 쓰세요.
 2. 각 섹션을 다시 읽으며 "좋은 말만 있는 섹션"이 있는지 확인하세요. 약점·리스크와 헤쳐나가는 방법이 구체적으로 들어있지 않으면 보강하세요.
 3. "조심하세요"로 끝나는 막연한 경고가 있다면 **구체적 행동 조언**으로 바꾸세요."""
 
@@ -325,86 +418,107 @@ def build_user_prompt(saju: dict) -> str:
     return facts + "\n\n위 정보를 바탕으로 각 섹션별로 상세하고 전문적인 분석을 해주세요."
 
 
+def _parse_int(value, field: str, lo: int, hi: int, optional: bool = False):
+    """폼 값을 정수로 변환하고 범위를 검사한다. 잘못되면 ValueError(사용자용 문구)."""
+    if value is None or value == "":
+        if optional:
+            return None
+        raise ValueError(f"{field} 값을 입력해 주세요.")
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field} 값이 올바르지 않아요.")
+    if not lo <= n <= hi:
+        raise ValueError(f"{field} 값은 {lo}~{hi} 사이여야 해요.")
+    return n
+
+
+async def read_json_body(request: Request) -> dict | None:
+    """JSON 객체 본문을 읽는다. 형식이 틀리면 None."""
+    try:
+        data = await request.json()
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def choice(value, allowed: tuple, default):
+    return value if value in allowed else default
+
+
+SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
+
+
 @app.post("/api/saju")
 async def analyze_saju(request: Request):
     """사주 계산 + AI 해석 (SSE 스트리밍)"""
-    data = await request.json()
-
-    name = data.get("name", "")
-    birth_year = int(data["year"])
-    birth_month = int(data["month"])
-    birth_day = int(data["day"])
-    birth_hour = data.get("hour")
-    if birth_hour is not None and birth_hour != "":
-        birth_hour = int(birth_hour)
-    else:
-        birth_hour = None
-    birth_minute = data.get("minute")
-    if birth_minute is not None and birth_minute != "":
-        birth_minute = int(birth_minute)
-    else:
-        birth_minute = 0
-    gender = data.get("gender", "male")
-    calendar_type = data.get("calendar_type", "solar")
-    is_intercalation = data.get("is_intercalation", False)
-    birth_place = data.get("birth_place", "")
-    birth_region = data.get("birth_region", "seoul")
-    apply_solar_time = data.get("apply_solar_time", True)
-    time_system = data.get("time_system", "joja")
+    data = await read_json_body(request)
+    if data is None:
+        return error_json("요청 형식이 올바르지 않아요.", 400)
 
     current_year = datetime.now().year
+    try:
+        birth_year = _parse_int(data.get("year"), "출생 연도", 1920, current_year)
+        birth_month = _parse_int(data.get("month"), "출생 월", 1, 12)
+        birth_day = _parse_int(data.get("day"), "출생 일", 1, 31)
+        birth_hour = _parse_int(data.get("hour"), "출생 시", 0, 23, optional=True)
+        birth_minute = _parse_int(data.get("minute"), "출생 분", 0, 59, optional=True) or 0
+    except ValueError as e:
+        return error_json(str(e), 400)
 
-    # 사주 계산
-    saju_result = calculate_saju(
-        name=name,
-        year=birth_year,
-        month=birth_month,
-        day=birth_day,
-        hour=birth_hour,
-        minute=birth_minute,
-        gender=gender,
-        calendar_type=calendar_type,
-        is_intercalation=is_intercalation,
-        birth_place=birth_place,
-        birth_region=birth_region,
-        current_year=current_year,
-        apply_solar_time=apply_solar_time,
-        time_system=time_system,
-    )
+    name = str(data.get("name", ""))[:20]
+    gender = choice(data.get("gender"), ("male", "female"), "male")
+    calendar_type = choice(data.get("calendar_type"), ("solar", "lunar"), "solar")
+
+    if rate_limited(request, "saju"):
+        return error_json(f"사주 분석은 1시간에 {RATE_LIMITS['saju']}회까지 가능해요. 잠시 후 다시 시도해 주세요.", 429)
+
+    try:
+        saju_result = calculate_saju(
+            name=name,
+            year=birth_year,
+            month=birth_month,
+            day=birth_day,
+            hour=birth_hour,
+            minute=birth_minute,
+            gender=gender,
+            calendar_type=calendar_type,
+            is_intercalation=bool(data.get("is_intercalation", False)),
+            birth_place=str(data.get("birth_place", ""))[:50],
+            birth_region=str(data.get("birth_region", "seoul"))[:30],  # 모르는 값은 계산기가 서울로 처리
+            current_year=current_year,
+            apply_solar_time=bool(data.get("apply_solar_time", True)),
+            time_system=choice(data.get("time_system"), ("joja", "yaja"), "joja"),
+        )
+    except ValueError:
+        # 존재하지 않는 날짜(예: 2월 30일, 없는 윤달) 등
+        logger.warning("사주 계산 실패: %s", data, exc_info=True)
+        return error_json("입력한 날짜를 확인해 주세요. 존재하지 않는 날짜이거나 윤달 정보가 맞지 않을 수 있어요.", 400)
 
     user_prompt = build_user_prompt(saju_result)
 
     async def event_stream():
-        # 먼저 사주 계산 결과를 전송
-        yield f"data: {json.dumps({'type': 'saju_data', 'data': saju_result}, ensure_ascii=False)}\n\n"
-
-        # Claude API 스트리밍 해석
-        async with client.messages.stream(
-            model="claude-sonnet-5",
-            max_tokens=8000,
-            thinking={"type": "disabled"},
-            system=SYSTEM_PROMPT,
+        # 먼저 사주 계산 결과를 전송 → 이어서 AI 해석 스트리밍
+        yield sse({"type": "saju_data", "data": saju_result})
+        async for event in stream_claude(
+            # 고정된 긴 시스템 프롬프트는 캐시해 반복 비용을 줄인다
+            system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
             messages=[{"role": "user", "content": user_prompt}],
-        ) as stream:
-            async for text in stream.text_stream:
-                yield f"data: {json.dumps({'type': 'text', 'content': text}, ensure_ascii=False)}\n\n"
+            max_tokens=12000,
+        ):
+            yield event
 
-        yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
 FOLLOWUP_SYSTEM = """당신은 사주를 아주 쉽게 설명해주는 친절한 선생님입니다.
 사용자의 사주 분석 결과를 바탕으로 추가 질문에 답변해주세요.
 초등학생도 이해할 수 있는 쉬운 말로 답변하세요. 전문 용어는 사용하지 마세요.
+(예: 대운 → "10년 단위 큰 흐름", 세운 → "올해의 기운", 일간 → "타고난 나의 기운". 십신 이름·간지 한자도 쓰지 않습니다.)
 간결하고 핵심적으로 답변하되, 친절한 톤을 유지하세요.
 
 **날짜·간지·수치를 절대 임의로 계산하거나 추정하지 않습니다.** 음력 날짜, 절기, 만 나이,
@@ -413,51 +527,74 @@ FOLLOWUP_SYSTEM = """당신은 사주를 아주 쉽게 설명해주는 친절한
 (일반론)임을 밝히거나 "그 부분은 정확히 계산된 값이 없어 말씀드리기 어려워요"라고 솔직히 답하세요."""
 
 
+def _clean_history(chat_history) -> list[dict]:
+    """클라이언트가 보낸 대화 이력을 검증하고 최근 것만 남긴다 (user→assistant 쌍 유지)."""
+    if not isinstance(chat_history, list):
+        return []
+    msgs = [
+        {"role": m["role"], "content": m["content"]}
+        for m in chat_history
+        if isinstance(m, dict)
+        and m.get("role") in ("user", "assistant")
+        and isinstance(m.get("content"), str)
+        and m["content"].strip()
+    ]
+    msgs = msgs[-MAX_HISTORY_MESSAGES:]
+    while sum(len(m["content"]) for m in msgs) > MAX_HISTORY_CHARS and len(msgs) > 2:
+        msgs = msgs[2:]
+    # 앞에 고정 assistant 인사말이 오므로 이력은 user로 시작하고 assistant로 끝나야 한다
+    while msgs and msgs[0]["role"] != "user":
+        msgs = msgs[1:]
+    while msgs and msgs[-1]["role"] != "assistant":
+        msgs = msgs[:-1]
+    return msgs
+
+
 @app.post("/api/followup")
 async def followup_question(request: Request):
     """추가 질문 (SSE 스트리밍)"""
-    data = await request.json()
-    question = data.get("question", "")
-    saju_context = data.get("saju_context", "")
+    data = await read_json_body(request)
+    if data is None:
+        return error_json("요청 형식이 올바르지 않아요.", 400)
+
+    question = str(data.get("question", "")).strip()
+    if not question:
+        return error_json("질문을 입력해 주세요.", 400)
+    if len(question) > MAX_QUESTION_CHARS:
+        return error_json(f"질문은 {MAX_QUESTION_CHARS}자 이내로 입력해 주세요.", 400)
+
+    if rate_limited(request, "followup"):
+        return error_json(f"추가 질문은 1시간에 {RATE_LIMITS['followup']}회까지 가능해요. 잠시 후 다시 시도해 주세요.", 429)
+
+    saju_context = str(data.get("saju_context", ""))[:MAX_CONTEXT_CHARS]
     saju_data = data.get("saju_data")
-    chat_history = data.get("chat_history", [])
 
     context = f"[이전 AI 해석 요약]\n{saju_context}"
     if saju_data:
         try:
             context += f"\n\n[사주 원본 데이터 — 날짜·간지·수치는 반드시 이 값만 사용]\n{build_facts_block(saju_data)}"
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, AttributeError):
             pass
 
-    messages = [{"role": "user", "content": context}]
-    messages.append({"role": "assistant", "content": "네, 이 사주에 대해 추가로 궁금한 점이 있으시면 편하게 물어보세요!"})
-
-    for msg in chat_history:
-        messages.append({"role": msg["role"], "content": msg["content"]})
-
-    messages.append({"role": "user", "content": question})
+    messages = [
+        # 이력이 잘려 뒤쪽이 바뀌어도 해석·원본 데이터 부분은 캐시를 계속 읽도록 고정 지점을 둔다
+        {"role": "user", "content": [{"type": "text", "text": context, "cache_control": {"type": "ephemeral"}}]},
+        {"role": "assistant", "content": "네, 이 사주에 대해 추가로 궁금한 점이 있으시면 편하게 물어보세요!"},
+        *_clean_history(data.get("chat_history")),
+        {"role": "user", "content": question},
+    ]
 
     async def event_stream():
-        async with client.messages.stream(
-            model="claude-sonnet-5",
-            max_tokens=1500,
-            thinking={"type": "disabled"},
+        # 같은 사주로 이어지는 질문은 앞부분(해석·원본 데이터)이 같으므로 자동 캐싱
+        async for event in stream_claude(
             system=FOLLOWUP_SYSTEM,
             messages=messages,
-        ) as stream:
-            async for text in stream.text_stream:
-                yield f"data: {json.dumps({'type': 'text', 'content': text}, ensure_ascii=False)}\n\n"
-        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            max_tokens=2000,
+            cache_control={"type": "ephemeral"},
+        ):
+            yield event
 
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
 # 정적 파일 서빙 (프론트엔드)

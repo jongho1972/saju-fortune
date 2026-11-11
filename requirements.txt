@@ -1,5 +1,5 @@
-fastapi
-uvicorn[standard]
-anthropic
-korean-lunar-calendar
-python-dotenv
+fastapi==0.162.4
+uvicorn[standard]==0.54.0
+anthropic==2.8.0
+korean-lunar-calendar==0.4.0
+python-dotenv==1.2.4

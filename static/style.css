@@ -1,15 +1,24 @@
-/* ── 기본 설정 ── 복권번호생성기와 동일한 톤앤매너 ── */
+/* ── 기본 설정 ── 홈페이지(jhawk.kr)와 같은 다크 고정 톤 ── */
 :root {
-    --accent: #007aff;
-    --accent-dark: #0062cc;
-    --bg: #f5f5f7;
-    --card-bg: #fff;
-    --text: #1c1c1e;
-    --text-muted: #8e8e93;
-    --border: rgba(0, 0, 0, 0.08);
+    color-scheme: dark;             /* 기본 폼 컨트롤·스크롤바도 다크로 */
+    --accent: #3d9bff;              /* 글자·테두리용 (AA 6.27 on surface) */
+    --accent-hover: #5aa9ff;        /* 글자 hover */
+    --accent-fill: #0a6fe0;         /* 버튼 배경 (흰 글자 4.81) */
+    --accent-fill-hover: #0b7cf7;
+    --accent-soft: rgba(61, 155, 255, 0.12);
+    --on-accent: #ffffff;
+    --bg: #0b0c0e;
+    --card-bg: #15171a;
+    --surface-2: #1c1f23;           /* 카드 안 보조 면 (입력칸·대화 말풍선) */
+    --text: #f2f3f5;
+    --text-muted: #8f949c;
+    --text-faint: #6b7078;
+    --border: #24272d;
+    --border-strong: rgba(255, 255, 255, 0.16);
     --radius: 12px;
-    --shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.35);
     --saju-accent: #fbc400;
+    --saju-accent-text: #f5c84a;
     --oh-wood: #27ae60;
     --oh-fire: #e74c3c;
     --oh-earth: #f39c12;
@@ -43,8 +52,8 @@ body {
 
 /* ── 헤더 ────────────────────────────────────── */
 header {
-    background: #fff;
-    border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
     text-align: center;
     padding: 28px 20px 22px;
     margin-bottom: 24px;
@@ -131,8 +140,8 @@ header h1 {
 .form-group select {
     width: 100%;
     padding: 10px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
     color: var(--text);
     font-size: 0.95rem;
@@ -144,7 +153,7 @@ header h1 {
 .form-group select:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .radio-group {
@@ -159,7 +168,7 @@ header h1 {
     cursor: pointer;
     padding: 8px 16px;
     background: var(--bg);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
     transition: all 0.2s;
     font-size: 0.95rem;
@@ -168,7 +177,7 @@ header h1 {
 
 .radio-label:has(input:checked) {
     border-color: var(--accent);
-    background: rgba(0, 122, 255, 0.06);
+    background: var(--accent-soft);
     color: var(--accent);
     font-weight: 600;
 }
@@ -190,8 +199,8 @@ header h1 {
     align-items: center;
     gap: 6px;
     padding: 10px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.9rem;
@@ -203,8 +212,8 @@ header h1 {
     width: 100%;
     padding: 12px;
     margin-top: 8px;
-    background: var(--accent);
-    color: #fff;
+    background: var(--accent-fill);
+    color: var(--on-accent);
     border: none;
     border-radius: 8px;
     font-size: 0.95rem;
@@ -215,7 +224,7 @@ header h1 {
 }
 
 #submit-btn:hover:not(:disabled) {
-    background: var(--accent-dark);
+    background: var(--accent-fill-hover);
 }
 
 #submit-btn:active {
@@ -283,7 +292,7 @@ header h1 {
     gap: 10px;
     background: linear-gradient(90deg, rgba(251, 196, 0, 0.14) 0%, rgba(251, 196, 0, 0.04) 100%);
     border-bottom: 1px solid rgba(251, 196, 0, 0.45);
-    color: #8a6d00;
+    color: var(--saju-accent-text);
     font-size: 0.88rem;
     font-weight: 600;
     padding: 10px 20px;
@@ -476,7 +485,26 @@ header h1 {
 /* ── AI 해석 ─────────────────────────────────── */
 #interpretation-card h2,
 #followup-card h2 {
-    border-left: 4px solid #636366;
+    border-left: 4px solid var(--text-muted);
+}
+
+/* 해석 중단·안내 메시지 */
+.stream-alert {
+    margin: 16px 0 0;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+.stream-alert.is-error {
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.35);
+    color: #ff8a8a;
+}
+.stream-alert.is-notice {
+    background: rgba(251, 196, 0, 0.08);
+    border: 1px solid rgba(251, 196, 0, 0.35);
+    color: var(--saju-accent-text);
 }
 
 /* ── 추가 질문 ───────────────────────────────── */
@@ -500,11 +528,11 @@ header h1 {
 }
 
 .chat-user {
-    background: var(--bg);
+    background: var(--surface-2);
 }
 
 .chat-ai {
-    background: #fff;
+    background: var(--card-bg);
     border: 1px solid var(--border);
 }
 
@@ -526,8 +554,8 @@ header h1 {
 .followup-input-wrap input {
     flex: 1;
     padding: 10px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
     color: var(--text);
     font-size: 0.9rem;
@@ -537,13 +565,13 @@ header h1 {
 .followup-input-wrap input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .followup-input-wrap button {
     padding: 10px 20px;
-    background: var(--accent);
-    color: #fff;
+    background: var(--accent-fill);
+    color: var(--on-accent);
     border: none;
     border-radius: 8px;
     font-size: 0.9rem;
@@ -554,7 +582,7 @@ header h1 {
 }
 
 .followup-input-wrap button:hover:not(:disabled) {
-    background: var(--accent-dark);
+    background: var(--accent-fill-hover);
 }
 
 .followup-input-wrap button:disabled {
@@ -627,8 +655,8 @@ header h1 {
 }
 
 .action-btn {
-    background: var(--accent);
-    color: #fff;
+    background: var(--accent-fill);
+    color: var(--on-accent);
     border: none;
     border-radius: 10px;
     padding: 12px 16px;
@@ -645,7 +673,7 @@ header h1 {
 }
 
 .action-btn:hover:not(:disabled) {
-    background: var(--accent-dark);
+    background: var(--accent-fill-hover);
 }
 
 .action-btn:disabled {
@@ -654,13 +682,13 @@ header h1 {
 }
 
 .action-btn.secondary {
-    background: #fff;
-    color: var(--accent-dark);
+    background: transparent;
+    color: var(--accent);
     border: 1.5px solid var(--saju-accent);
 }
 
 .action-btn.secondary:hover:not(:disabled) {
-    background: rgba(0, 122, 255, 0.06);
+    background: var(--accent-soft);
 }
 
 .action-helper {
@@ -683,8 +711,9 @@ header h1 {
     left: 50%;
     bottom: 32px;
     transform: translateX(-50%) translateY(20px);
-    background: rgba(28, 28, 30, 0.92);
-    color: #fff;
+    background: rgba(36, 39, 45, 0.96);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
     padding: 12px 20px;
     border-radius: 24px;
     font-size: 0.9rem;
@@ -692,7 +721,7 @@ header h1 {
     transition: all 0.25s;
     z-index: 100;
     pointer-events: none;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .toast.show {
@@ -724,13 +753,13 @@ footer a {
 }
 
 footer a:hover {
-    color: var(--accent-dark);
+    color: var(--accent-hover);
 }
 
 footer .deploy-date {
     margin-top: 8px;
     font-size: 0.7rem;
-    color: #bbb;
+    color: var(--text-faint);
 }
 
 /* ── 반응형 ──────────────────────────────────── */
@@ -782,7 +811,7 @@ footer .deploy-date {
 .advanced-settings {
     margin-top: 16px;
     padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.02);
+    background: rgba(255, 255, 255, 0.03);
     border-radius: 8px;
     border: 1px solid var(--border);
 }
@@ -817,6 +846,22 @@ footer .deploy-date {
 
 /* ── @media print: 인쇄·PDF 저장 전용 ────────── */
 @media print {
+    /* 화면은 다크지만 PDF·인쇄는 흰 종이 기준 밝은 색으로 되돌린다 */
+    :root {
+        color-scheme: light;
+        --accent: #0062cc;
+        --accent-soft: rgba(0, 122, 255, 0.06);
+        --bg: #ffffff;
+        --card-bg: #ffffff;
+        --surface-2: #f5f5f7;
+        --text: #1c1c1e;
+        --text-muted: #555555;
+        --text-faint: #8e8e93;
+        --border: rgba(0, 0, 0, 0.12);
+        --border-strong: rgba(0, 0, 0, 0.16);
+        --saju-accent-text: #8a6d00;
+    }
+
     /* 화면 전용 요소 모두 숨김 */
     header, footer, #input-section, #loading-section,
     #action-card, #followup-card, #toast, .streaming-banner {

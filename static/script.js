@@ -82,6 +82,15 @@ function initCalendarToggle() {
 
 // ── 폼 제출 ─────────────────────────────────────────
 
+// 서버가 400/429 등으로 거절하면 JSON {error} 안내 문구를 꺼낸다
+async function readErrorMessage(response) {
+    try {
+        const body = await response.json();
+        if (body && body.error) return body.error;
+    } catch (e) {}
+    return `서버 오류가 발생했어요 (${response.status}). 잠시 후 다시 시도해 주세요.`;
+}
+
 async function handleSubmit(e) {
     e.preventDefault();
 
@@ -128,7 +137,7 @@ async function handleSubmit(e) {
         });
 
         if (!response.ok) {
-            throw new Error(`서버 오류: ${response.status}`);
+            throw new Error(await readErrorMessage(response));
         }
 
         const reader = response.body.getReader();
@@ -136,6 +145,8 @@ async function handleSubmit(e) {
         let buffer = '';
         let fullText = '';
         let lastRender = 0;
+        let streamError = '';
+        let streamNotice = '';
         const interpEl = document.getElementById('interpretation');
         const streamingBanner = document.getElementById('streaming-banner');
         interpEl.innerHTML = '';
@@ -165,6 +176,10 @@ async function handleSubmit(e) {
                         interpEl.innerHTML = '';
                         interpEl.classList.add('streaming');
                         document.getElementById('saju-table-card').scrollIntoView({ behavior: 'smooth' });
+                    } else if (data.type === 'error') {
+                        streamError = data.message;
+                    } else if (data.type === 'notice') {
+                        streamNotice = data.message;
                     } else if (data.type === 'text') {
                         fullText += data.content;
                         // 출력되는 대로 실시간 렌더링 (200ms throttle)
@@ -184,7 +199,9 @@ async function handleSubmit(e) {
         streamingBanner.style.display = 'none';
         interpEl.classList.remove('streaming');
         if (fullText) {
-            interpEl.innerHTML = marked.parse(fullText);
+            interpEl.innerHTML = marked.parse(fullText)
+                + (streamError ? alertHtml('is-error', streamError + ' (해석이 중간에 끊겼어요)') : '')
+                + (streamNotice ? alertHtml('is-notice', streamNotice) : '');
             // 추가 질문 영역 표시
             sajuContext = fullText;
             chatHistory = [];
@@ -196,7 +213,7 @@ async function handleSubmit(e) {
             const helper = document.getElementById('action-helper');
             if (helper) helper.style.display = 'none';
         } else {
-            interpEl.innerHTML = '<p>해석 결과를 불러오지 못했습니다.</p>';
+            interpEl.innerHTML = alertHtml('is-error', streamError || streamNotice || '해석 결과를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
         }
 
     } catch (err) {
@@ -204,7 +221,7 @@ async function handleSubmit(e) {
         document.getElementById('result-section').style.display = 'none';
         document.getElementById('loading-section').style.display = 'none';
         document.getElementById('input-section').style.display = 'block';
-        alert('분석 중 오류가 발생했습니다: ' + err.message);
+        alert(err.message || '분석 중 오류가 발생했어요.');
     } finally {
         submitBtn.disabled = false;
     }
@@ -248,10 +265,15 @@ async function sendFollowup() {
             }),
         });
 
+        if (!response.ok) {
+            throw new Error(await readErrorMessage(response));
+        }
+
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let answerText = '';
+        let answerError = '';
 
         while (true) {
             const { done, value } = await reader.read();
@@ -265,7 +287,9 @@ async function sendFollowup() {
                 if (!line.startsWith('data: ')) continue;
                 try {
                     const data = JSON.parse(line.slice(6).trim());
-                    if (data.type === 'text') {
+                    if (data.type === 'error' || data.type === 'notice') {
+                        answerError = data.message;
+                    } else if (data.type === 'text') {
                         answerText += data.content;
                         answerDiv.innerHTML = '<strong>A.</strong> ' + marked.parse(answerText);
                         chatEl.scrollTop = chatEl.scrollHeight;
@@ -274,18 +298,26 @@ async function sendFollowup() {
             }
         }
 
-        if (answerText) {
+        if (answerError) {
+            answerDiv.innerHTML = '<strong>A.</strong> ' + (answerText ? marked.parse(answerText) : '')
+                + alertHtml('is-error', answerError);
+        } else if (answerText) {
             answerDiv.innerHTML = '<strong>A.</strong> ' + marked.parse(answerText);
             chatHistory.push({ role: 'user', content: question });
             chatHistory.push({ role: 'assistant', content: answerText });
         }
     } catch (err) {
-        answerDiv.innerHTML = '<strong>A.</strong> 답변을 가져오지 못했습니다.';
+        answerDiv.innerHTML = '<strong>A.</strong> ' + alertHtml('is-error', err.message || '답변을 가져오지 못했어요.');
     } finally {
         btn.disabled = false;
         btn.textContent = '질문';
         chatEl.scrollTop = chatEl.scrollHeight;
     }
+}
+
+// 해석 중단(is-error)·안내(is-notice) 메시지 블록
+function alertHtml(cls, msg) {
+    return `<p class="stream-alert ${cls}">${escapeHtml(msg)}</p>`;
 }
 
 function escapeHtml(text) {
