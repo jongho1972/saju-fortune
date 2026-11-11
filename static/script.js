@@ -185,7 +185,7 @@ async function handleSubmit(e) {
                         // 출력되는 대로 실시간 렌더링 (200ms throttle)
                         const now = Date.now();
                         if (now - lastRender > 200) {
-                            interpEl.innerHTML = marked.parse(fullText);
+                            interpEl.innerHTML = renderMarkdown(fullText);
                             lastRender = now;
                         }
                     }
@@ -199,7 +199,7 @@ async function handleSubmit(e) {
         streamingBanner.style.display = 'none';
         interpEl.classList.remove('streaming');
         if (fullText) {
-            interpEl.innerHTML = marked.parse(fullText)
+            interpEl.innerHTML = renderMarkdown(fullText)
                 + (streamError ? alertHtml('is-error', streamError + ' (해석이 중간에 끊겼어요)') : '')
                 + (streamNotice ? alertHtml('is-notice', streamNotice) : '');
             // 추가 질문 영역 표시
@@ -291,7 +291,7 @@ async function sendFollowup() {
                         answerError = data.message;
                     } else if (data.type === 'text') {
                         answerText += data.content;
-                        answerDiv.innerHTML = '<strong>A.</strong> ' + marked.parse(answerText);
+                        answerDiv.innerHTML = '<strong>A.</strong> ' + renderMarkdown(answerText);
                         chatEl.scrollTop = chatEl.scrollHeight;
                     }
                 } catch (e) {}
@@ -299,10 +299,10 @@ async function sendFollowup() {
         }
 
         if (answerError) {
-            answerDiv.innerHTML = '<strong>A.</strong> ' + (answerText ? marked.parse(answerText) : '')
+            answerDiv.innerHTML = '<strong>A.</strong> ' + (answerText ? renderMarkdown(answerText) : '')
                 + alertHtml('is-error', answerError);
         } else if (answerText) {
-            answerDiv.innerHTML = '<strong>A.</strong> ' + marked.parse(answerText);
+            answerDiv.innerHTML = '<strong>A.</strong> ' + renderMarkdown(answerText);
             chatHistory.push({ role: 'user', content: question });
             chatHistory.push({ role: 'assistant', content: answerText });
         }
@@ -313,6 +313,13 @@ async function sendFollowup() {
         btn.textContent = '질문';
         chatEl.scrollTop = chatEl.scrollHeight;
     }
+}
+
+// 한국어는 **굵게** 바로 뒤에 조사가 붙는 경우가 많은데(예: **현재(2022년)**은),
+// 마크다운 규칙상 닫는 ** 앞이 문장부호면 굵게 처리가 안 되고 **가 그대로 보인다.
+// 같은 줄 안의 ** 쌍을 미리 <strong>으로 바꿔 렌더한다.
+function renderMarkdown(text) {
+    return marked.parse(text.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>'));
 }
 
 // 해석 중단(is-error)·안내(is-notice) 메시지 블록
