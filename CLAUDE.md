@@ -49,7 +49,7 @@ uvicorn main:app --reload
 
 SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크), `notice` (max_tokens로 잘림·거절 안내), `error` (API 오류, 사용자용 문구 — 원문은 서버 로그), `done` (완료). 공통 생성기는 `stream_claude()`이며 매 호출 토큰·캐시 사용량을 uvicorn 로그에 `claude stop=... cache_read=...`로 남긴다.
 
-프론트엔드는 `saju_data` 수신 즉시 사주표를 표시하고, `text` 청크가 들어오는 대로 마크다운을 실시간 렌더링한다(200ms throttle). 해석 중에는 스트리밍 배너(`#streaming-banner`)와 깜빡이는 커서(`#interpretation.streaming`)를 표시하고, 완료 시 배너를 숨기며 공유·PDF 저장 버튼을 활성화한다.
+프론트엔드는 `saju_data` 수신 즉시 사주표를 표시하고, `text` 청크가 들어오는 대로 마크다운을 실시간 렌더링한다(200ms throttle). 렌더는 모두 `renderMarkdown()`을 거친다 — 한국어에서 `**굵게(괄호)**은`처럼 닫는 `**` 앞이 문장부호고 뒤에 조사가 붙으면 마크다운이 굵게 처리하지 못해 `**`가 노출되므로, 같은 줄의 `**` 쌍을 `<strong>`으로 먼저 바꾼다. 해석 중에는 스트리밍 배너(`#streaming-banner`)와 깜빡이는 커서(`#interpretation.streaming`)를 표시하고, 완료 시 배너를 숨기며 공유·PDF 저장 버튼을 활성화한다.
 
 ### 보호 장치 (2026-11-11)
 
@@ -71,7 +71,7 @@ SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크
 4. 연애운과 결혼운
 5. 건강운
 6. 향후 12개월 월별 운세 (양력 기준)
-7. 대운 흐름과 종합 조언
+7. 10년 흐름과 종합 조언 (2026-11-11 '대운'에서 변경 — 제목에도 금지어가 없도록)
 
 해석은 전문 용어 없이 쉬운 일상 언어로 작성된다.
 
