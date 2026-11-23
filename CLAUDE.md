@@ -101,4 +101,4 @@ SSE 이벤트 타입: `saju_data` (계산 결과 JSON), `text` (AI 해석 청크
 - **저장소**: GitHub `jongho1972/saju-fortune`
 - **서비스 URL**: https://fortune.jhawk.kr
 - GitHub `main` 푸시 시 `deploy.yml`이 VPS SSH → `git reset --hard` → `docker compose build/up fortune` → 헬스체크
-- 공통 인프라·롤백·트러블슈팅: 워크스페이스 루트 `deploy/README.md` 또는 `vps-deploy` 스킬
+- 공통 인프라·롤백·트러블슈팅: 워크스페이스 루트 `공용/deploy/README.md` 또는 `vps-deploy` 스킬
