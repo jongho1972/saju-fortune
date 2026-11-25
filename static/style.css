@@ -1,24 +1,24 @@
 /* ── 기본 설정 ── 다크 고정 + 보라(luck) 강조. 색 기준: 공용/Design_MD/PALETTE.md ── */
 :root {
     color-scheme: dark;             /* 기본 폼 컨트롤·스크롤바도 다크로 */
-    --accent: #bda8fc;              /* 글자·테두리용 (8.70 on surface) */
-    --accent-hover: #cfc0ff;        /* 글자 hover */
-    --accent-fill: #bda8fc;         /* 버튼 배경 (어두운 글자 9.48) */
-    --accent-fill-hover: #cfc0ff;
-    --accent-soft: rgba(189, 168, 252, 0.12);
-    --on-accent: #0b0c0e;
-    --bg: #0b0c0e;
-    --card-bg: #15171a;
-    --surface-2: #1c1f23;           /* 카드 안 보조 면 (입력칸·대화 말풍선) */
-    --text: #f2f3f5;
-    --text-muted: #8f949c;
+    --accent: #b3a6dc;              /* 글자·테두리용 (8.11 on surface) */
+    --accent-hover: #c8bdea;        /* 글자 hover */
+    --accent-fill: #e8e8e6;         /* 버튼 배경 실버 (어두운 글자 15.41) */
+    --accent-fill-hover: #f7f7f5;
+    --accent-soft: rgba(179, 166, 220, 0.12);
+    --on-accent: #101112;
+    --bg: #0c0d0e;
+    --card-bg: #151617;
+    --surface-2: #1c1d1f;           /* 카드 안 보조 면 (입력칸·대화 말풍선) */
+    --text: #f1f1ef;
+    --text-muted: #93949a;
     --text-faint: #6b7078;
-    --border: #24272d;
+    --border: #26272a;
     --border-strong: rgba(255, 255, 255, 0.16);
     --radius: 12px;
     --shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.35);
-    --saju-accent: #e8b762;         /* 골드 — 얇은 선·작은 점에만 */
-    --saju-accent-text: #e8b762;
+    --saju-accent: #cfae74;         /* 골드 — 얇은 선·작은 점에만 */
+    --saju-accent-text: #cfae74;
     --oh-wood: #27ae60;
     --oh-fire: #e74c3c;
     --oh-earth: #f39c12;
@@ -240,7 +240,7 @@ header h1 {
 .spinner {
     width: 18px;
     height: 18px;
-    border: 2.5px solid rgba(11, 12, 14, 0.3);
+    border: 2.5px solid rgba(16, 17, 18, 0.3);
     border-top-color: var(--on-accent);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
@@ -291,8 +291,8 @@ header h1 {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(232, 183, 98, 0.08);
-    border-bottom: 1px solid rgba(232, 183, 98, 0.35);
+    background: rgba(207, 174, 116, 0.08);
+    border-bottom: 1px solid rgba(207, 174, 116, 0.35);
     color: var(--saju-accent-text);
     font-size: 0.88rem;
     font-weight: 600;
@@ -304,15 +304,15 @@ header h1 {
     height: 9px;
     border-radius: 50%;
     background: var(--saju-accent);
-    box-shadow: 0 0 0 0 rgba(232, 183, 98, 0.6);
+    box-shadow: 0 0 0 0 rgba(207, 174, 116, 0.6);
     animation: streamPulse 1.2s ease-in-out infinite;
     flex-shrink: 0;
 }
 
 @keyframes streamPulse {
-    0% { box-shadow: 0 0 0 0 rgba(232, 183, 98, 0.55); transform: scale(1); }
-    70% { box-shadow: 0 0 0 8px rgba(232, 183, 98, 0); transform: scale(1.15); }
-    100% { box-shadow: 0 0 0 0 rgba(232, 183, 98, 0); transform: scale(1); }
+    0% { box-shadow: 0 0 0 0 rgba(207, 174, 116, 0.55); transform: scale(1); }
+    70% { box-shadow: 0 0 0 8px rgba(207, 174, 116, 0); transform: scale(1.15); }
+    100% { box-shadow: 0 0 0 0 rgba(207, 174, 116, 0); transform: scale(1); }
 }
 
 #interpretation.streaming::after {
@@ -498,13 +498,13 @@ header h1 {
     line-height: 1.6;
 }
 .stream-alert.is-error {
-    background: rgba(255, 107, 107, 0.1);
-    border: 1px solid rgba(255, 107, 107, 0.35);
-    color: #ff8a8a;
+    background: rgba(239, 127, 120, 0.1);
+    border: 1px solid rgba(239, 127, 120, 0.35);
+    color: #ef7f78;
 }
 .stream-alert.is-notice {
-    background: rgba(232, 183, 98, 0.08);
-    border: 1px solid rgba(232, 183, 98, 0.35);
+    background: rgba(207, 174, 116, 0.08);
+    border: 1px solid rgba(207, 174, 116, 0.35);
     color: var(--saju-accent-text);
 }
 
@@ -655,6 +655,8 @@ header h1 {
     gap: 10px;
 }
 
+.icon { width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.2em; }
+
 .action-btn {
     background: var(--accent-fill);
     color: var(--on-accent);
@@ -712,7 +714,7 @@ header h1 {
     left: 50%;
     bottom: 32px;
     transform: translateX(-50%) translateY(20px);
-    background: rgba(36, 39, 45, 0.96);
+    background: rgba(38, 39, 42, 0.96);
     border: 1px solid var(--border-strong);
     color: var(--text);
     padding: 12px 20px;
