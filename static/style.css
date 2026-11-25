@@ -1,12 +1,12 @@
-/* ── 기본 설정 ── 홈페이지(jhawk.kr)와 같은 다크 고정 톤 ── */
+/* ── 기본 설정 ── 다크 고정 + 보라(luck) 강조. 색 기준: 공용/Design_MD/PALETTE.md ── */
 :root {
     color-scheme: dark;             /* 기본 폼 컨트롤·스크롤바도 다크로 */
-    --accent: #3d9bff;              /* 글자·테두리용 (AA 6.27 on surface) */
-    --accent-hover: #5aa9ff;        /* 글자 hover */
-    --accent-fill: #0a6fe0;         /* 버튼 배경 (흰 글자 4.81) */
-    --accent-fill-hover: #0b7cf7;
-    --accent-soft: rgba(61, 155, 255, 0.12);
-    --on-accent: #ffffff;
+    --accent: #bda8fc;              /* 글자·테두리용 (8.70 on surface) */
+    --accent-hover: #cfc0ff;        /* 글자 hover */
+    --accent-fill: #bda8fc;         /* 버튼 배경 (어두운 글자 9.48) */
+    --accent-fill-hover: #cfc0ff;
+    --accent-soft: rgba(189, 168, 252, 0.12);
+    --on-accent: #0b0c0e;
     --bg: #0b0c0e;
     --card-bg: #15171a;
     --surface-2: #1c1f23;           /* 카드 안 보조 면 (입력칸·대화 말풍선) */
@@ -17,13 +17,14 @@
     --border-strong: rgba(255, 255, 255, 0.16);
     --radius: 12px;
     --shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.35);
-    --saju-accent: #fbc400;
-    --saju-accent-text: #f5c84a;
+    --saju-accent: #e8b762;         /* 골드 — 얇은 선·작은 점에만 */
+    --saju-accent-text: #e8b762;
     --oh-wood: #27ae60;
     --oh-fire: #e74c3c;
     --oh-earth: #f39c12;
     --oh-metal: #95a5a6;
     --oh-water: #2980b9;
+    --on-oh: #0b0c0e;               /* 오행 배지·막대 위 글자 (4.55~8.92) */
 }
 
 * {
@@ -93,7 +94,7 @@ header h1 {
     padding: 14px 20px;
     margin: 0;
     border-bottom: 1px solid var(--border);
-    border-left: 4px solid var(--saju-accent);
+    border-left: 2px solid var(--saju-accent);
 }
 
 #input-section {
@@ -239,8 +240,8 @@ header h1 {
 .spinner {
     width: 18px;
     height: 18px;
-    border: 2.5px solid rgba(255, 255, 255, 0.4);
-    border-top-color: #fff;
+    border: 2.5px solid rgba(11, 12, 14, 0.3);
+    border-top-color: var(--on-accent);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
     display: inline-block;
@@ -290,8 +291,8 @@ header h1 {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: linear-gradient(90deg, rgba(251, 196, 0, 0.14) 0%, rgba(251, 196, 0, 0.04) 100%);
-    border-bottom: 1px solid rgba(251, 196, 0, 0.45);
+    background: rgba(232, 183, 98, 0.08);
+    border-bottom: 1px solid rgba(232, 183, 98, 0.35);
     color: var(--saju-accent-text);
     font-size: 0.88rem;
     font-weight: 600;
@@ -303,15 +304,15 @@ header h1 {
     height: 9px;
     border-radius: 50%;
     background: var(--saju-accent);
-    box-shadow: 0 0 0 0 rgba(251, 196, 0, 0.6);
+    box-shadow: 0 0 0 0 rgba(232, 183, 98, 0.6);
     animation: streamPulse 1.2s ease-in-out infinite;
     flex-shrink: 0;
 }
 
 @keyframes streamPulse {
-    0% { box-shadow: 0 0 0 0 rgba(251, 196, 0, 0.55); transform: scale(1); }
-    70% { box-shadow: 0 0 0 8px rgba(251, 196, 0, 0); transform: scale(1.15); }
-    100% { box-shadow: 0 0 0 0 rgba(251, 196, 0, 0); transform: scale(1); }
+    0% { box-shadow: 0 0 0 0 rgba(232, 183, 98, 0.55); transform: scale(1); }
+    70% { box-shadow: 0 0 0 8px rgba(232, 183, 98, 0); transform: scale(1.15); }
+    100% { box-shadow: 0 0 0 0 rgba(232, 183, 98, 0); transform: scale(1); }
 }
 
 #interpretation.streaming::after {
@@ -328,7 +329,7 @@ header h1 {
 
 /* ── 사주 표 ─────────────────────────────────── */
 #saju-table-card h2 {
-    border-left: 4px solid var(--saju-accent);
+    border-left: 2px solid var(--saju-accent);
 }
 
 #saju-info {
@@ -413,7 +414,7 @@ header h1 {
     padding: 1px 6px;
     border-radius: 4px;
     margin-top: 4px;
-    color: #fff;
+    color: var(--on-oh);
     font-weight: 600;
 }
 
@@ -421,7 +422,7 @@ header h1 {
 .oh-wood { background: var(--oh-wood); }
 .oh-fire { background: var(--oh-fire); }
 .oh-earth { background: var(--oh-earth); }
-.oh-metal { background: var(--oh-metal); color: #fff; }
+.oh-metal { background: var(--oh-metal); }
 .oh-water { background: var(--oh-water); }
 
 /* ── 오행 차트 ───────────────────────────────── */
@@ -470,7 +471,7 @@ header h1 {
     justify-content: flex-end;
     padding-right: 6px;
     font-size: 0.68rem;
-    color: #fff;
+    color: var(--on-oh);
     font-weight: 700;
 }
 
@@ -485,7 +486,7 @@ header h1 {
 /* ── AI 해석 ─────────────────────────────────── */
 #interpretation-card h2,
 #followup-card h2 {
-    border-left: 4px solid var(--text-muted);
+    border-left: 2px solid var(--text-muted);
 }
 
 /* 해석 중단·안내 메시지 */
@@ -502,8 +503,8 @@ header h1 {
     color: #ff8a8a;
 }
 .stream-alert.is-notice {
-    background: rgba(251, 196, 0, 0.08);
-    border: 1px solid rgba(251, 196, 0, 0.35);
+    background: rgba(232, 183, 98, 0.08);
+    border: 1px solid rgba(232, 183, 98, 0.35);
     color: var(--saju-accent-text);
 }
 
@@ -684,7 +685,7 @@ header h1 {
 .action-btn.secondary {
     background: transparent;
     color: var(--accent);
-    border: 1.5px solid var(--saju-accent);
+    border: 1px solid var(--accent);
 }
 
 .action-btn.secondary:hover:not(:disabled) {
